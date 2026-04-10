@@ -10,7 +10,7 @@ Thank you for your interest in contributing! This document covers how to set up 
 ## Setting up the development environment
 
 ```bash
-git clone https://github.com/fortnox-finance/ibis-typing
+git clone https://github.com/FortnoxAB/ibis-typing
 cd ibis-typing
 uv sync --all-extras
 uv run python -m ibis_typing.type_patch

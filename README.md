@@ -1,8 +1,6 @@
 # ibis-typing
 
-[![CI](https://github.com/fortnox-finance/ibis-typing/actions/workflows/ci.yml/badge.svg)](https://github.com/fortnox-finance/ibis-typing/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/ibis-typing)](https://pypi.org/project/ibis-typing/)
-[![Python](https://img.shields.io/pypi/pyversions/ibis-typing)](https://pypi.org/project/ibis-typing/)
+[![CI](https://github.com/FortnoxAB/ibis-typing/actions/workflows/ci.yml/badge.svg)](https://github.com/FortnoxAB/ibis-typing/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 A typed framework for writing [Ibis](https://ibis-project.org/) dataframe expressions — with full IDE support, static analysis, and property-based testing.
@@ -173,14 +171,14 @@ The following fixtures are auto-registered via the pytest plugin entry point (no
 ## Contributing
 
 ```bash
-git clone https://github.com/fortnox-finance/ibis-typing
+git clone https://github.com/FortnoxAB/ibis-typing
 cd ibis-typing
 uv sync --all-extras
 uv run python -m ibis_typing.type_patch
 make test
 ```
 
-Pull requests welcome. Please run `make lint` before submitting.
+Pull requests welcome. Please run `make` before submitting.
 
 ## License
 

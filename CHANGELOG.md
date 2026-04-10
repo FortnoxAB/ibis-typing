@@ -30,5 +30,5 @@ Initial open-source release under the MIT license.
 - DuckDB and Trino backend support
 - MIT license
 
-[Unreleased]: https://github.com/fortnox-finance/ibis-typing/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/fortnox-finance/ibis-typing/releases/tag/v1.0.0
+[Unreleased]: https://github.com/FortnoxAB/ibis-typing/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/FortnoxAB/ibis-typing/releases/tag/v1.0.0

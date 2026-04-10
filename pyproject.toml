@@ -59,9 +59,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/fortnox-finance/ibis-typing"
-Repository = "https://github.com/fortnox-finance/ibis-typing"
-Issues = "https://github.com/fortnox-finance/ibis-typing/issues"
+Homepage = "https://github.com/FortnoxAB/ibis-typing"
+Repository = "https://github.com/FortnoxAB/ibis-typing"
+Issues = "https://github.com/FortnoxAB/ibis-typing/issues"
 
 [dependency-groups]
 dev = [
