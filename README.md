@@ -100,7 +100,8 @@ graph TD
     TableProvider -->|provides tables to| Expression
     IbisConnection -->|fetches typed rows from| IbisTable
     ChecksumBuckets -->|incremental inputs to| IncrementalExpression
-    BucketedInputsExpression -->|is a| Expression
+    IncrementalExpression -->|is a| Expression
+    BucketedInputsExpression -->|is a| IncrementalExpression
     RevertibleTableExpression -->|can revert| Expression
 ```
 
