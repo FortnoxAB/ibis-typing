@@ -66,10 +66,14 @@ class MonthlyAmounts(Expression):
 ### 3. Evaluate against a backend
 
 ```python
-from ibis_typing import IbisConnection
+from datetime import date
+
+from ibis_typing import IbisConnection, evaluator
 
 conn = IbisConnection()
-results: list[MonthlyAmounts] = conn.evaluate(MonthlyAmounts, transactions_table)
+transactions = Transaction.of_rows([Transaction(date=date(2024, 1, 15), amount=100.0, category="A")])
+monthly_amounts = evaluator.from_expression(MonthlyAmounts, transactions)
+results: list[MonthlyAmounts] = list(conn.fetch_table(monthly_amounts))
 ```
 
 ### 4. Test with Hypothesis
@@ -97,17 +101,18 @@ graph TD
     IbisConnection -->|fetches typed rows from| IbisTable
     ChecksumBuckets -->|incremental inputs to| IncrementalExpression
     IncrementalExpression -->|is a| Expression
-    Revertible -->|can revert| Expression
+    BucketedInputsExpression -->|is a| IncrementalExpression
+    RevertibleTableExpression -->|can revert| Expression
 ```
 
-| Class | Purpose |
-|---|---|
-| `IbisSchema` | Base class for typed table schemas (attrs frozen dataclass) |
-| `IbisTable[S]` | Generic typed wrapper around `ibis.Table` |
-| `Expression` | Abstract base for typed ibis transforms |
-| `IbisConnection` | Typed backend wrapper: `fetch_table()`, `evaluate()`, `read/write_parquet()` |
-| `IncrementalExpression` | Expression that only re-runs for changed input buckets |
-| `ChecksumBuckets` | Checksum-based incremental input tracking |
+| Class                       | Purpose |
+|-----------------------------|---|
+| `IbisSchema`                | Base class for typed table schemas (attrs frozen dataclass) |
+| `IbisTable[S]`              | Generic typed wrapper around `ibis.Table` |
+| `Expression`                | Abstract base for typed ibis transforms |
+| `IbisConnection`            | Typed backend wrapper: `fetch_table()`, `evaluate()`, `read/write_parquet()` |
+| `BucketedInputsExpression`  | Expression that only re-runs for changed input buckets |
+| `ChecksumBuckets`           | Checksum-based incremental input tracking |
 | `RevertibleTableExpression` | Transform that can undo itself back to the original schema |
 
 ## Type aliases
@@ -134,7 +139,8 @@ it.Struct[MyTypedDict]
 Use the infix `@` operator for composable, typed table transforms:
 
 ```python
-from ibis_typing.ibis_utils import Select, Aggregate, InnerJoin, LeftJoin
+from ibis_typing import IbisSchema, IbisTable, this
+from ibis_typing.ibis_utils import Select, Aggregate, InnerJoin
 
 @frozen
 class InputSchema(IbisSchema):
@@ -144,11 +150,17 @@ class InputSchema(IbisSchema):
     amount: it.Float64 = None
     key: it.String = None
 
+    
+inputs: IbisTable[InputSchema] = ...
+other_table: IbisTable = ...
 cols = InputSchema.cols
 
-table @ Select(cols.a, cols.b, expr={"c": this[cols.a] + this[cols.b]})
-table @ Aggregate(by=[cols.category], sum=[cols.amount])
-table @ InnerJoin(other_table, keys=[cols.key])
+table = InputSchema.of(
+    inputs.table
+    @ Select(cols.a, cols.b, expr={"c": this[cols.a] + this[cols.b]})
+    @ Aggregate(by=[cols.category], sum=[cols.amount])
+    @ InnerJoin(other_table.table, keys=[cols.key])
+)
 ```
 
 ## Pytest fixtures
