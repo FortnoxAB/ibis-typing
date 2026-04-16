@@ -73,7 +73,7 @@ from ibis_typing import IbisConnection, evaluator
 conn = IbisConnection()
 transactions = Transaction.of_rows([Transaction(date=date(2024, 1, 15), amount=100.0, category="A")])
 monthly_amounts = evaluator.from_expression(MonthlyAmounts, transactions)
-results: list[MonthlyAmounts] = conn.fetch_table(monthly_amounts)
+results: list[MonthlyAmounts] = list(conn.fetch_table(monthly_amounts))
 ```
 
 ### 4. Test with Hypothesis
