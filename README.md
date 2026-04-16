@@ -155,11 +155,11 @@ inputs: IbisTable[InputSchema] = ...
 other_table: IbisTable = ...
 cols = InputSchema.cols
 
-table = (
-    inputs
+table = InputSchema.of(
+    inputs.table
     @ Select(cols.a, cols.b, expr={"c": this[cols.a] + this[cols.b]})
     @ Aggregate(by=[cols.category], sum=[cols.amount])
-    @ InnerJoin(other_table, keys=[cols.key])
+    @ InnerJoin(other_table.table, keys=[cols.key])
 )
 ```
 
