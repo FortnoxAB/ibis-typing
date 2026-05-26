@@ -22,11 +22,13 @@ from ibis_typing import this
 from ibis_typing.ibis_extension_method import TableMethod
 
 __all__ = [
+    "AntiJoin",
     "InnerJoin",
     "JoinMethod",
     "LeftJoin",
     "OuterJoin",
     "OuterJoinParallel",
+    "anti_join",
     "inner_join",
     "join",
     "left_join",
@@ -97,6 +99,10 @@ class OuterJoinParallel(Join):
         kwargs.pop("how")
         tables = kwargs.pop("tables")
         return outer_join_parallel(table, *tables, **kwargs)
+
+
+class AntiJoin(Join):
+    _how = JoinMethod.ANTI
 
 
 def join(
@@ -214,3 +220,14 @@ def outer_join(
 ) -> Table:
     table, *tail = tables
     return table @ OuterJoin(*tail, keys=keys, arbitrary=arbitrary, max=max, min=min)
+
+
+def anti_join(
+    *tables: Table,
+    keys: Iterable[it.NameOrType],
+    arbitrary: Iterable[it.NameOrType] = (),
+    max: Iterable[it.NameOrType] = (),
+    min: Iterable[it.NameOrType] = (),
+) -> Table:
+    table, *tail = tables
+    return table @ AntiJoin(*tail, keys=keys, arbitrary=arbitrary, max=max, min=min)

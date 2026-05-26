@@ -15,7 +15,10 @@ from ibis_typing import (
 )
 from ibis_typing.fixtures import marks
 from ibis_typing.ibis_utils import Aggregate, Select
-from ibis_typing.table_provider import AbstractTableProvider, EmptyTableProvider
+from ibis_typing.table_provider import (
+    get_abstract_table,
+    get_empty_table,
+)
 from ibis_typing.utils import StrDate
 
 
@@ -97,12 +100,12 @@ def test_fetch_table_without_rows(fetch_table):
 
 
 def test_fetch_table_from_empty_table_provider(fetch_table):
-    table = EmptyTableProvider()(Schema)
+    table = get_empty_table(Schema)
     assert fetch_table(table) == []
 
 
 def test_fetch_abstract_table_raises_error(fetch_table):
-    table = AbstractTableProvider()(Schema)
+    table = get_abstract_table(Schema)
     with pytest.raises(Exception):
         fetch_table(table)
 

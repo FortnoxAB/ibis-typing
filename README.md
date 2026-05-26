@@ -29,8 +29,7 @@ python -m ibis_typing.type_patch
 
 ```python
 from attrs import frozen
-from ibis_typing import IbisSchema
-from ibis_typing import it
+from ibis_typing import IbisSchema, it
 
 @frozen
 class Transaction(IbisSchema):
@@ -42,8 +41,7 @@ class Transaction(IbisSchema):
 ### 2. Define a typed expression
 
 ```python
-from ibis_typing import Expression, IbisTable, this
-from ibis_typing.ibis_utils import Select, Aggregate
+from ibis_typing import Expression, IbisTable, this, it
 
 @frozen
 class MonthlyAmounts(Expression):
@@ -51,12 +49,12 @@ class MonthlyAmounts(Expression):
     amount: it.Float64 = None
 
     @classmethod
-    def from_expression(cls, inputs: IbisTable[Transaction]) -> IbisTable["MonthlyAmounts"]:
+    def from_expression(cls, inputs: IbisTable[Transaction]):
         cols = inputs.cols
         table = (
             inputs.table
-            @ Select(expr={"month": this[cols.date].truncate("M")})
-            @ Aggregate(by=["month"], sum=[cols.amount])
+            @ it.Select(expr={"month": this[cols.date].truncate("M")})
+            @ it.Aggregate(by=["month"], sum=[cols.amount])
         )
         return cls.of(table)
 ```
@@ -139,8 +137,7 @@ it.Struct[MyTypedDict]
 Use the infix `@` operator for composable, typed table transforms:
 
 ```python
-from ibis_typing import IbisSchema, IbisTable, this
-from ibis_typing.ibis_utils import Select, Aggregate, InnerJoin
+from ibis_typing import IbisSchema, IbisTable, this, it
 
 @frozen
 class InputSchema(IbisSchema):
@@ -150,16 +147,16 @@ class InputSchema(IbisSchema):
     amount: it.Float64 = None
     key: it.String = None
 
-    
+
 inputs: IbisTable[InputSchema] = ...
 other_table: IbisTable = ...
 cols = InputSchema.cols
 
 table = InputSchema.of(
     inputs.table
-    @ Select(cols.a, cols.b, expr={"c": this[cols.a] + this[cols.b]})
-    @ Aggregate(by=[cols.category], sum=[cols.amount])
-    @ InnerJoin(other_table.table, keys=[cols.key])
+    @ it.Select(cols.a, cols.b, expr={"c": this[cols.a] + this[cols.b]})
+    @ it.Aggregate(by=[cols.category], sum=[cols.amount])
+    @ it.InnerJoin(other_table.table, keys=[cols.key])
 )
 ```
 

@@ -64,10 +64,12 @@ format:
 	uv run ruff format
 fix:
 	uv run ruff check --fix
+	uv run ty check --fix
 fix_unsafe:
 	uv run ruff check --fix --unsafe-fixes
 add_noqa:
 	uv run ruff check --add-noqa
+	uv run ty check --add-ignore
 lint:
 	uv run ruff check
 	uv run ruff format --check

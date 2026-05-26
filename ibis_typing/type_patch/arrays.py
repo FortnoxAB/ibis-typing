@@ -48,7 +48,7 @@ class ArrayValueMap(ArrayValue):
     @overload
     def map[R: Value](self, func: MapBinary[R], /) -> ArrayValue[R]: ...
 
-    def map(self, func) -> ArrayValue:
+    def map(self, func) -> ArrayValue:  # ty:ignore[invalid-method-override]
         raise NotImplementedError
 
 
@@ -61,7 +61,7 @@ class ArrayValueFilter(ArrayValue):
     @overload
     def filter(self, func: FilterBinary, /) -> Self: ...
 
-    def filter(self, func) -> Self:
+    def filter(self, func) -> Self:  # ty:ignore[invalid-method-override]
         raise NotImplementedError
 
 

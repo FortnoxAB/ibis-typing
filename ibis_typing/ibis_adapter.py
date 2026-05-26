@@ -43,7 +43,7 @@ class IbisSchema:
         cols = utils.BoxedDict(dict(zip(fields, cls.table_schema)))
         return cast(Self, cols)
 
-    table_schema = utils.classproperty(_get_table_schema)
+    table_schema: ClassVar[Mapping[str, str]] = utils.classproperty(_get_table_schema)
     cols: ClassVar[Self] = utils.classproperty(_get_cols)
 
     @classmethod
