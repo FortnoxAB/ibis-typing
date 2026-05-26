@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from typing import Protocol, cast
+from typing import Protocol, cast, overload
 
 import ibis
 from attrs import frozen
@@ -13,6 +13,10 @@ from .ibis_adapter import IbisDbSchema, IbisSchema, IbisTable, tables_of_rows
 
 class TableProvider(Protocol):
     def __call__[S: IbisSchema](self, schema: type[S]) -> IbisTable[S] | None: ...
+
+
+class RobustTableProvider(TableProvider, Protocol):
+    def __call__[S: IbisSchema](self, schema: type[S]) -> IbisTable[S]: ...
 
 
 type TableProviders = Sequence[TableProvider]
@@ -39,7 +43,7 @@ def chain_providers(*providers) -> TableProvider:
 
 
 @frozen
-class EmptyTableProvider(TableProvider):
+class EmptyTableProvider(RobustTableProvider):
     """Provide an empty table without data."""
 
     def __call__[S: IbisSchema](self, schema: type[S]) -> IbisTable[S]:
@@ -47,10 +51,10 @@ class EmptyTableProvider(TableProvider):
 
 
 @frozen
-class AbstractTableProvider(TableProvider):
+class AbstractTableProvider(RobustTableProvider):
     """Provide an abstract non-executable table without data."""
 
-    def __call__(self, schema):
+    def __call__[S: IbisSchema](self, schema: type[S]) -> IbisTable[S]:
         table = ibis.table(schema.table_schema)
         return schema.of(table)
 
@@ -63,9 +67,14 @@ class AbstractTableProvider(TableProvider):
 class DbTableProvider(TableProvider):
     """Provide tables for IbisDbSchema."""
 
-    def __call__[S: IbisSchema](self, schema: type[S]) -> IbisTable[S]:
+    @overload
+    def __call__[S: IbisDbSchema](self, schema: type[S]) -> IbisTable[S]: ...
+    @overload
+    def __call__[S: IbisSchema](self, schema: type[S]) -> IbisTable[S] | None: ...
+
+    def __call__(self, schema):
         if not issubclass(schema, IbisDbSchema):
-            return None  # type: ignore
+            return None
 
         catalog, database = schema.table_namespace
         table = ibis.table(
@@ -75,6 +84,11 @@ class DbTableProvider(TableProvider):
             database=database,
         )
         return schema.of(table)
+
+
+get_abstract_table = AbstractTableProvider()
+get_empty_table = EmptyTableProvider()
+get_db_table = DbTableProvider()
 
 
 @frozen

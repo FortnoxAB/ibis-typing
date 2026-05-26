@@ -12,7 +12,7 @@ from . import evaluator, schema_bindings
 from .expression import Expression
 from .plot import graph
 from .schema_bindings import NameProvider, SuffixNameProvider
-from .table_provider import AbstractTableProvider, TableProviders
+from .table_provider import AbstractTableProvider, TableProviders, get_abstract_table
 
 NamedModules = Mapping[str, str]
 ExprToSchemaPackage = Mapping[type[Expression], ModuleType]
@@ -65,9 +65,7 @@ def generate_schemas(
     }
 
     tables = {}
-    providers: TableProviders = cast(
-        TableProviders, [tables.get, AbstractTableProvider()]
-    )
+    providers: TableProviders = cast(TableProviders, [tables.get, get_abstract_table])
 
     for expr, schema_package in expr_to_schema_package.items():
         logger.info(f"Generating schema for {expr.__name__}")

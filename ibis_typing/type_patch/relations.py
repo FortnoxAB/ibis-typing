@@ -179,21 +179,29 @@ class TableAggregate(Table):
     def aggregate(
         self,
         metrics: Iterable = (),
-        by: Iterable = (),
-        having: Iterable = (),
+        /,
+        *,
+        by: Sequence = (),
+        having: Sequence = (),
         **kwargs: ir.Value,
     ) -> Table: ...
 
     @overload
     def aggregate(
         self,
-        by: Iterable[it.NameOrTypeOrValue] = (),
+        metrics: Sequence[it.NameOrTypeOrValue] = (),
+        /,
+        *,
+        by: Sequence[it.NameOrTypeOrValue] = (),
+        having: Sequence[ir.BooleanValue] = (),
         **kwargs: ir.Value,
     ) -> Table: ...
 
     def aggregate(
         self,
         metrics=(),
+        /,
+        *,
         by=(),
         having=(),
         **kwargs: ir.Value,
@@ -242,13 +250,18 @@ class TableDistinct(Table):
         keep: Literal["first", "last"] | None = "first",
     ) -> Table: ...
     @overload
+    def distinct(  # ty:ignore[invalid-overload]
+        self,
+        *,
+        on: s.Selector = None,
+        keep: Literal["first", "last"] | None = "first",
+    ) -> Table: ...
     def distinct(
         self,
         *,
-        on: s.Selector = ...,
-        keep: Literal["first", "last"] | None = "first",
-    ) -> Table: ...
-    def distinct(self, *, on=None, keep: Any = "first") -> Table:
+        on=None,
+        keep="first",
+    ) -> Table:
         raise NotImplementedError
 
 

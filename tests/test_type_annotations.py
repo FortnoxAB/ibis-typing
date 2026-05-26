@@ -16,9 +16,13 @@ from ibis import ir, literal
 from ibis_typing import IbisSchema, it, this
 from ibis_typing.hypothesis import strategy_for
 from ibis_typing.ibis_adapter import IbisDbSchema
-from ibis_typing.ibis_extension_method import deferred
 from ibis_typing.ibis_utils import Aggregate, Select
-from ibis_typing.table_provider import DbTableProvider, EmptyTableProvider
+from ibis_typing.table_provider import (
+    AbstractTableProvider,
+    DbTableProvider,
+    EmptyTableProvider,
+    get_abstract_table,
+)
 
 exhaustive = hypothesis.settings(max_examples=2**5)
 
@@ -74,7 +78,7 @@ def test_simple_column_typing(fetch_table, data):
 
 
 def test_collections_column_typing():
-    inputs = (t := CollectionSchema).of(ibis.table(t.table_schema))
+    inputs = get_abstract_table(CollectionSchema)
 
     col = inputs.cols
 
@@ -101,43 +105,46 @@ def test_collections_column_typing():
 def test_schema_read_write_typing(data: SimpleSchema):
     _ = SimpleSchema(
         # simple
-        integer=data.integer and data.integer**2,
-        float=data.float and data.float * 2,
-        boolean=data.boolean and data.boolean,
-        text=data.text and data.text.upper(),
-        bytes=data.bytes and data.bytes.upper(),
+        integer=(v := data.integer) and v**2,
+        float=(v := data.float) and v * 2,
+        boolean=(v := data.boolean) and v,
+        text=(v := data.text) and v.upper(),
+        bytes=(v := data.bytes) and v.upper(),
         # Complex
-        decimal=data.decimal and data.decimal / 2,
-        date=data.date and data.date.replace(day=1),
-        time=data.time and data.time.replace(hour=1),
-        timestamp=data.timestamp and data.timestamp.replace(year=1),
+        decimal=(v := data.decimal) and v / 2,
+        date=(v := data.date) and v.replace(day=1),
+        time=(v := data.time) and v.replace(hour=1),
+        timestamp=(v := data.timestamp) and v.replace(year=1),
     )
 
 
 def test_table_operations():
-    inputs = SimpleSchema.of_rows([])
+    inputs = get_abstract_table(SimpleSchema)
 
     col = inputs.cols
+    d = it.deferred
 
     _ = (
-        inputs.table.select(
+        inputs.table
+        @ d.select(
             col.integer,
             col.float,
             col.timestamp,
             col.decimal,
-        ).filter(this[col.integer] > literal(0))
+        )
+        @ d.filter(this[col.integer] > literal(0))
         @ Aggregate(
             by=[col.integer, col.timestamp],
             sum=[col.decimal],
             arbitrary=[col.float],
         )
-        @ deferred.cast({col.decimal: int})
-        .rename({col.integer: col.decimal})
-        .drop(col.integer, col.timestamp)
-        .order_by(this[col.float].desc())
-        .order_by(ibis.desc(col.float))
-        .order_by(col.float)
-        .order_by("float")
+        @ d.cast({col.decimal: int})
+        @ d.rename({col.integer: col.decimal})
+        @ d.drop(col.integer, col.timestamp)
+        @ d.order_by(this[col.float].desc())
+        @ d.order_by(ibis.desc(col.float))
+        @ d.order_by(col.float)
+        @ d.order_by("float")
     )
 
 
@@ -151,7 +158,8 @@ def test_table_provider_overloads():
 
     db_provider = DbTableProvider()
     empty_provider = EmptyTableProvider()
+    abstract_provider = AbstractTableProvider()
 
-    # No pyright complaints about nullable return types
     assert db_provider(MyDbSchema).table_schema
     assert empty_provider(MyDbSchema).table_schema
+    assert abstract_provider(MyDbSchema).table_schema

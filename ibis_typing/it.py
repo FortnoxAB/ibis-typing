@@ -55,6 +55,7 @@ from .ibis_types import (
 )
 from .ibis_utils import (
     Aggregate,
+    AntiJoin,
     InnerJoin,
     LeftJoin,
     OuterJoin,
@@ -70,6 +71,7 @@ __all__ = [
     "JSON",
     "UUID",
     "Aggregate",
+    "AntiJoin",
     "AnyType",
     "Array",
     "Binary",

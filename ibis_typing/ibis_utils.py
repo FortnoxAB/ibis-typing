@@ -39,11 +39,13 @@ from .ibis_defaults import (
     numeric_or_bool_default_provider,
 )
 from .ibis_joins import (
+    AntiJoin,
     InnerJoin,
     JoinMethod,
     LeftJoin,
     OuterJoin,
     OuterJoinParallel,
+    anti_join,
     inner_join,
     join,
     left_join,
@@ -59,6 +61,7 @@ from .partitioning import (
 
 __all__ = [
     "Aggregate",
+    "AntiJoin",
     "ByNumberOfBuckets",
     "BySize",
     "InnerJoin",
@@ -70,6 +73,7 @@ __all__ = [
     "Select",
     "TableMap",
     "aggregate",
+    "anti_join",
     "fill_nulls",
     "inner_join",
     "join",
@@ -88,18 +92,24 @@ __all__ = [
 class Select(TableMethod):
     names: Sequence[it.NameOrType]
     expr: Mapping[it.NameOrType, Value] | None = None
+    drop: Sequence[it.NameOrType] = ()
 
     def apply(self, table):
         kwargs = attrs.asdict(self)
         names = kwargs.pop("names")
-        return select(table, *names, **kwargs)
+        drop = kwargs.pop("drop")
+        table = select(table, *names, **kwargs)
+        if drop:
+            table = table.drop(self.drop)
+        return table
 
     def __init__(
         self,
         *names: it.NameOrType,
         expr: Mapping[it.NameOrType, Value] | None = None,
+        drop: Sequence[it.NameOrType] = (),
     ):
-        self.__attrs_init__(names, expr)
+        self.__attrs_init__(names, expr, drop)
 
 
 @frozen(kw_only=True)
@@ -141,7 +151,7 @@ def aggregate(  # noqa: PLR0913 # Too many arguments in function definition (6 >
         *(col for col in exprs if col not in cols),
     ]
     values = {str(col): exprs[col] for col in order}
-    return table.aggregate(by=by, **values)
+    return table.aggregate(by=by, **values)  # ty:ignore[no-matching-overload]
 
 
 @overload

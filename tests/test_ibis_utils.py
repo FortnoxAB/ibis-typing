@@ -1,5 +1,6 @@
 from typing import Any
 
+import cattrs
 import pytest
 from attrs import frozen
 from ibis import literal
@@ -14,10 +15,10 @@ from ibis_typing.ibis_utils import Aggregate, Select
 from tests.conftest import SimpleSchema
 
 
-def test_select_cols(fetch_table):
+def test_select_cols(fetch_table, evaluate_expr):
     @frozen
     class SelectCols(IbisSchema):
-        id: it.Int64
+        id: it.Int64 = None
 
     rows = [
         SimpleSchema(id=0, value=2),
@@ -33,6 +34,13 @@ def test_select_cols(fetch_table):
     actual = fetch_table(SelectCols.of(table))
 
     assert actual == expected
+
+    table = SimpleSchema.of_rows(rows).table @ Select(drop=[SimpleSchema.cols.value])
+
+    # Evaluate raw table mapping to avoid ignoring extra columns in the typed fetcher.
+    actual = evaluate_expr(table)
+
+    assert actual == cattrs.unstructure(expected)
 
 
 @pytest.mark.parametrize("selected_cols", [[SimpleSchema.cols.id], []])

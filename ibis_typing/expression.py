@@ -11,7 +11,7 @@ import ibis
 from attrs import frozen
 
 from .ibis_adapter import IbisSchema, IbisTable
-from .table_provider import AbstractTableProvider
+from .table_provider import get_abstract_table
 
 
 class Expression(IbisSchema, abc.ABC):
@@ -124,8 +124,7 @@ class IdentityTableExpression(SingleInputTableExpression, abc.ABC):
 
 
 def generate_table_schema(from_expression, schemas) -> dict[str, str]:
-    provider = AbstractTableProvider()
-    inputs = {name: provider(schema) for name, schema in schemas.items()}
+    inputs = {name: get_abstract_table(schema) for name, schema in schemas.items()}
     ret = from_expression(**inputs)
     table = ret.table if isinstance(ret, IbisTable) else ret
     return {column: str(ibis_type) for column, ibis_type in table.schema().items()}
