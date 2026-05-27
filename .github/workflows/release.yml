@@ -30,7 +30,7 @@ jobs:
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             uv version "${GITHUB_REF_NAME#v}"
           else
-            uv version --bump dev
+            uv version "0.0.1.dev$(git rev-list --count HEAD)"  # 0.0.1.dev14
           fi
 
       - name: Build
