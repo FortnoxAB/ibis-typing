@@ -1,7 +1,12 @@
 # ibis-typing
 
-[![CI](https://github.com/FortnoxAB/ibis-typing/actions/workflows/ci.yml/badge.svg)](https://github.com/FortnoxAB/ibis-typing/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/ibis-typing)](https://pypi.org/project/ibis-typing/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python](https://img.shields.io/pypi/pyversions/ibis-typing)](https://pypi.org/project/ibis-typing/)
+[![CI](https://github.com/FortnoxAB/ibis-typing/actions/workflows/ci.yml/badge.svg)](https://github.com/FortnoxAB/ibis-typing/actions/workflows/ci.yml)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![ty](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ty/main/assets/badge/v0.json)](https://github.com/astral-sh/ty)
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 
 A typed framework for writing [Ibis](https://ibis-project.org/) dataframe expressions — with full IDE support, static analysis, and property-based testing.
 
