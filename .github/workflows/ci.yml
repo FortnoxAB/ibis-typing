@@ -65,10 +65,17 @@ jobs:
         run: |
           uv run coverage combine
           uv run coverage html
+          uv run coverage xml
           uv run coverage report --skip-covered --sort=cover --fail-under=90
 
-      - name: Upload coverage report
+      - name: Upload HTML coverage report
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: coverage-html
           path: coverage_html_report/
+
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24  # v5.4.3
+        with:
+          files: coverage.xml
+          fail_ci_if_error: true
