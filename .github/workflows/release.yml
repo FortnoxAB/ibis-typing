@@ -4,7 +4,8 @@ on:
   push:
     branches:
       - main
-      - master
+    tags:
+      - 'v*.*.*'  # e.g., v1.2.3
 
 permissions:
   contents: read
