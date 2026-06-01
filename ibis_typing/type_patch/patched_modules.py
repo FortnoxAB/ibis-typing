@@ -12,11 +12,8 @@ import ibis.expr.types.relations
 
 from . import (
     api,
-    arrays,
     generic,
-    json_,
     logical,
-    maps,
     monkeypatch,
     numeric,
     relations,
@@ -31,24 +28,12 @@ def get_patched_module_writers():
             api.get_patchers(),
         ),
         PatchedModuleWriter(
-            ibis.expr.types.arrays,
-            arrays.get_patchers(),
-        ),
-        PatchedModuleWriter(
             ibis.expr.types.generic,
             generic.get_patchers(),
         ),
         PatchedModuleWriter(
-            ibis.expr.types.json,
-            json_.get_patchers(),
-        ),
-        PatchedModuleWriter(
             ibis.expr.types.logical,
             logical.get_patchers(),
-        ),
-        PatchedModuleWriter(
-            ibis.expr.types.maps,
-            maps.get_patchers(),
         ),
         PatchedModuleWriter(
             ibis.expr.types.numeric,

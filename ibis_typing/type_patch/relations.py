@@ -113,52 +113,6 @@ class TableGetItem(Table):
     @overload
     def __getitem__(self, col: it.Struct) -> ir.StructColumn: ...
 
-    # Typed collections
-
-    # Primitive types
-    @overload
-    def __getitem__(
-        self, col: it.Array[it.Boolean]
-    ) -> ir.ArrayColumn[ir.BooleanColumn]: ...
-    @overload
-    def __getitem__(
-        self, col: it.Array[it.Integer]
-    ) -> ir.ArrayColumn[ir.IntegerColumn]: ...
-    @overload
-    def __getitem__(
-        self, col: it.Array[it.Floating]
-    ) -> ir.ArrayColumn[ir.FloatingColumn]: ...
-    @overload
-    def __getitem__(
-        self, col: it.Array[it.String]
-    ) -> ir.ArrayColumn[ir.StringColumn]: ...
-    @overload
-    def __getitem__(
-        self, col: it.Array[it.Binary]
-    ) -> ir.ArrayColumn[ir.BinaryColumn]: ...
-    # Complex types
-    @overload
-    def __getitem__(
-        self, col: it.Array[it.Decimal]
-    ) -> ir.ArrayColumn[ir.DecimalColumn]: ...
-    @overload
-    def __getitem__(
-        self, col: it.Array[it.Timestamp]
-    ) -> ir.ArrayColumn[ir.TimestampColumn]: ...
-    @overload
-    def __getitem__(self, col: it.Array[it.Date]) -> ir.ArrayColumn[ir.DateColumn]: ...
-    @overload
-    def __getitem__(self, col: it.Array[it.Time]) -> ir.ArrayColumn[ir.TimeColumn]: ...
-    @overload
-    def __getitem__(self, col: it.Array[it.UUID]) -> ir.ArrayColumn[ir.UUIDColumn]: ...
-    # Non-typed collections
-    @overload
-    def __getitem__(
-        self, col: it.Array[it.Struct]
-    ) -> ir.ArrayColumn[ir.StructColumn]: ...
-    @overload
-    def __getitem__(self, col: it.Array[it.JSON]) -> ir.ArrayColumn[ir.JSONColumn]: ...
-    # Unknown
     @overload
     def __getitem__(self, col: it.Array) -> ir.ArrayColumn: ...
     @overload

@@ -7,7 +7,7 @@ import re
 from collections.abc import Callable
 from pathlib import Path
 from types import FunctionType, MethodType, ModuleType
-from typing import TypeAliasType, cast
+from typing import cast
 
 from attrs import frozen
 
@@ -36,44 +36,6 @@ class PatchedModuleWriter:
         # Remove the current file to avoid collisions with uv hard-links.
         current.unlink()
         current.write_text(patched_impl)
-
-
-@frozen
-class ValueTypeParameterPatcher:
-    """Add type parameters to `ibis.ir.Value` types."""
-
-    cls: type
-    params: list[TypeAliasType]
-    base: type | None = None
-
-    def __call__(self, module_impl: str) -> str:
-        param_strs = (f"{p.__name__}: {p.__value__.__name__}" for p in self.params)
-        param_spec = f"[{', '.join(param_strs)}]"
-
-        logger.info(f"{self.cls.__qualname__}{param_spec}")
-
-        class_def = f"class {self.cls.__name__}"
-
-        new = module_impl
-        new = new.replace(
-            class_def,
-            class_def + param_spec,
-            1,
-        )
-
-        if self.base:
-            head, tail = new.split(class_def, 1)
-            param_names = (p.__name__ for p in self.params)
-            param_list = f"[{', '.join(param_names)}]"
-            base_name = self.base.__name__
-            tail = tail.replace(
-                base_name,
-                base_name + param_list,
-                1,
-            )
-            new = head + class_def + tail
-
-        return new
 
 
 @frozen
