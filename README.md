@@ -196,7 +196,7 @@ inputs: IbisTable[InputSchema] = ...
 other_table: IbisTable = ...
 cols = InputSchema.cols
 
-table = InputSchema.of(
+table = (
     inputs.table
     @ it.Select(cols.a, cols.b, expr={"c": this[cols.a] + this[cols.b]})
     @ it.Aggregate(by=[cols.category], sum=[cols.amount])
