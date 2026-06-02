@@ -82,15 +82,15 @@ def test_collections_column_typing():
 
     col = inputs.cols
 
-    def map_int(x: ir.IntegerValue):
-        return (x + literal(1)).cast(float)
+    def map_fn(x: ir.Value):
+        return x.cast(float)
 
-    def filter_float(x: ir.FloatingValue):
-        return x == literal(0)
+    def filter_fn(x: ir.Value):
+        return x.cast(bool)
 
     _ = inputs.table @ Select(
         expr={
-            col.array: this[col.array].map(map_int).filter(filter_float)[0].negate(),
+            col.array: this[col.array].map(map_fn).filter(filter_fn)[0],
             # Note: Unhashable collection types cause type error when used as mapping keys.
             # Easiest solution is to simply wrap the actual string in a str() call.
             str(col.struct): this[col.struct]["amount"],
