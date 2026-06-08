@@ -3,8 +3,8 @@ import datetime
 import pytest
 from ibis import literal
 
-from ibis_typing import ibis_time
 from ibis_typing.ibis_ops import ColumnChecksum
+from ibis_typing.ibis_time import AddMonths, MonthsSince, StartOfMonth
 from ibis_typing.utils import StrDate
 from tests.conftest import SimpleSchema
 
@@ -13,7 +13,7 @@ from tests.conftest import SimpleSchema
 def test_add_months(evaluate_expr, months):
     now = StrDate("2020-01-11")
 
-    expr = ibis_time.add_months(literal(now.date), months)
+    expr = literal(now.date) @ AddMonths(months)
     actual = evaluate_expr(expr, datetime.date)
 
     assert actual == now.plus_months(months).date
@@ -43,9 +43,8 @@ def test_column_checksum(evaluate_expr, ibis_dialect, value):
 def test_diff_months(evaluate_expr, months):
     now = StrDate("2020-01-01")
 
-    expr = ibis_time.diff_months(
-        literal(now.plus_months(months).date),
-        literal(now.plus(20).date),
+    expr = literal(now.plus_months(months).date) @ MonthsSince(
+        literal(now.plus(20).date)
     )
     actual = evaluate_expr(expr)
 
@@ -56,7 +55,7 @@ def test_diff_months(evaluate_expr, months):
 def test_truncate_month(evaluate_expr, days):
     now = StrDate("2020-01-01").plus(days)
 
-    expr = ibis_time.truncate_month(literal(now.date))
+    expr = literal(now.date) @ StartOfMonth()
     expected = now.month_start.date
     actual = evaluate_expr(expr, datetime.date)
 

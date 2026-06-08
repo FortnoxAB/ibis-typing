@@ -50,7 +50,7 @@ class PatchTarget(UserString):
 
 
 def classmethod_patch[**P, R](method: Callable[P, R]) -> Callable[P, R]:
-    fixed = classmethod(method_func(method))
+    fixed = classmethod(method_func(method))  # type: ignore
     return cast(Any, fixed)
 
 

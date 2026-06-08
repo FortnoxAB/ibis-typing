@@ -61,7 +61,7 @@ class FillNulls(TableMethod):
         *names: it.NameOrType,
         default_provider: DefaultProvider = numeric_or_bool_default_provider,
     ):
-        self.__attrs_init__(names, default_provider)
+        self.__attrs_init__(names, default_provider)  # type: ignore
 
 
 default_provider: DefaultProvider = numeric_or_bool_default_provider

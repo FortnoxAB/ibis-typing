@@ -76,7 +76,7 @@ class Join(TableMethod):
         min: Iterable[it.NameOrType] = (),
         how: JoinMethod | None = None,
     ):
-        self.__attrs_init__(tables, keys, arbitrary, max, min, how or self._how)
+        self.__attrs_init__(tables, keys, arbitrary, max, min, how or self._how)  # type: ignore
 
 
 class LeftJoin(Join):

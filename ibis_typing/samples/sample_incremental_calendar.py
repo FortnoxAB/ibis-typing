@@ -1,6 +1,6 @@
 from attrs import frozen
 
-from ibis_typing import ibis_time, it, this
+from ibis_typing import it, this
 from ibis_typing.checksum_buckets import (
     BucketedInputsExpression,
     BucketedInputsParams,
@@ -8,6 +8,7 @@ from ibis_typing.checksum_buckets import (
     ChecksumParams,
 )
 from ibis_typing.ibis_adapter import IbisSchema, IbisTable
+from ibis_typing.ibis_time import DaysSince
 from ibis_typing.ibis_utils import Aggregate
 from ibis_typing.samples.generated import sample_schemas
 
@@ -35,10 +36,7 @@ class CalendarWidth(sample_schemas.CalendarWidth, BucketedInputsExpression):
             by=args.group_by,
             arbitrary=[args.updated_at_col],
             expr={
-                "day_span": ibis_time.diff_days(
-                    this[cols.day].max(),
-                    this[cols.day].min(),
-                ),
+                "day_span": this[cols.day].max() @ DaysSince(this[cols.day].min()),
             },
         )
 
