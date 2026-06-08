@@ -50,10 +50,11 @@ python -m ibis_typing.type_patch
 
 ## Quick start
 
-### 1. Define schemas
+### 1. Define input schemas
 
 ```python
 from attrs import frozen
+
 from ibis_typing import IbisSchema, it
 
 
@@ -67,7 +68,11 @@ class Transaction(IbisSchema):
 ### 2. Define a typed expression
 
 ```python
+from attrs import frozen
+from collections.abc import Sequence
 from ibis_typing import Expression, IbisTable, this, it
+from ibis_typing.ibis_extension_method import TableMethod, ValueMethod
+from ibis import Table, ir
 
 
 @frozen
@@ -78,12 +83,27 @@ class MonthlyAmounts(Expression):
     @classmethod
     def from_expression(cls, inputs: IbisTable[Transaction]):
         cols = inputs.cols
-        table = (
-            inputs.table
-            @ it.Select(expr={"month": this[cols.date].truncate("M")})
-            @ it.Aggregate(by=["month"], sum=[cols.amount])
-        )
+        table = inputs.table @ AggregateByMonth(cols.date, sums=[cols.amount])
         return cls.of(table)
+
+
+@frozen
+class AggregateByMonth(TableMethod):
+    date: it.Date
+    sums: Sequence[it.Float64]
+
+    def apply(self, table: Table) -> Table:
+        return (
+            table
+            @ it.Select(expr={"month": this[self.date] @ StartOfMonth()})
+            @ it.Aggregate(by=["month"], sum=self.sums)
+        )
+
+
+@frozen
+class StartOfMonth(ValueMethod[ir.DateValue, ir.DateValue]):
+    def apply(self, value: ir.DateValue):
+        return value.truncate("M")
 ```
 
 > **Tip:** `IbisSchema` classes for your `Expression` outputs can be generated automatically using
@@ -96,13 +116,22 @@ class MonthlyAmounts(Expression):
 from datetime import date
 
 from ibis_typing import IbisConnection, evaluator
+from ibis_typing.table_store import ParquetTableStore
 
-conn = IbisConnection()  # defaults to DuckDB in-memory
-transactions = Transaction.of_rows(
-  [Transaction(date=date(2024, 1, 15), amount=100.0, category="A")]
+conn = IbisConnection()  # defaults to in-memory DuckDB
+transactions = Transaction.of_rows(  # give test data via IbisSchema rows.
+    [Transaction(date=date(2024, 1, 15), amount=100.0, category="A")]
 )
 monthly_amounts = evaluator.from_expression(MonthlyAmounts, transactions)
 results: list[MonthlyAmounts] = list(conn.fetch_table(monthly_amounts))
+
+# Write and read parquet files locally, stored by schema name.
+from pathlib import Path
+
+store = ParquetTableStore(Path("/tmp/table_store"))
+store.write_table(transactions)
+table = store(Transaction)
+rows: list[Transaction] = list(conn.fetch_table(table))
 ```
 
 ### 4. Test with Hypothesis
@@ -120,8 +149,8 @@ from ibis_typing.hypothesis import strategy_for
 def test_monthly_amounts(evaluate_table, transactions):
     reference_output = utils.group_by(transactions, key=lambda t: t.date.replace(day=1))
     monthly_amounts = [
-      MonthlyAmounts(month=month, amount=sum(t.amount for t in month_transactions))
-      for month, month_transactions in reference_output.items()
+        MonthlyAmounts(month=month, amount=sum(t.amount for t in month_transactions))
+        for month, month_transactions in reference_output.items()
     ]
 
     # Get evaluated expression rows together with expected, both as sorted lists
@@ -151,6 +180,7 @@ graph TD
 | `IbisTable[S]`              | Generic typed wrapper around `ibis.Table`                                    |
 | `Expression`                | Abstract base for typed ibis transforms                                      |
 | `TableMethod`               | Extension method on `ibis.Table` returning another Table                     |
+| `ValueMethod`               | Extension method on `ibis.Value` returning another Value                     |
 | `IbisConnection`            | Typed backend wrapper: `fetch_table()`, `evaluate()`, `read/write_parquet()` |
 | `BucketedInputsExpression`  | Expression that only re-runs for changed input buckets                       |
 | `ChecksumBuckets`           | Checksum-based incremental input tracking                                    |

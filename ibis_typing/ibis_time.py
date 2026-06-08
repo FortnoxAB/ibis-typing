@@ -8,16 +8,15 @@ from typing import Self, cast
 import ibis
 from attrs import frozen
 from ibis import ir, literal
-from ibis.common.temporal import DateUnit
 from ibis.expr import datatypes as dt
-
-from ibis_typing.ibis_extension_method import DateMethod, IntegerMethod
+from typing_extensions import deprecated
 
 from . import ibis_types as it
 from .custom.custom_operations import DateAddDay, DateAddMonth
 from .custom.op_cast import op_cast
 from .expression import Expression
 from .ibis_adapter import IbisTable
+from .ibis_extension_method import ValueMethod
 
 
 @frozen
@@ -49,41 +48,51 @@ class TimestampNow(Expression):
 
 
 @frozen
-class StartOfMonth(DateMethod):
+class StartOfMonth(ValueMethod[ir.DateValue, ir.DateValue]):
     def apply(self, value: ir.DateValue):
-        return truncate_month(value)
+        return value.truncate("M")
 
 
 @frozen
-class MonthsSince(IntegerMethod):
+class MonthsSince(ValueMethod[ir.DateValue, ir.IntegerValue]):
     start: ir.DateValue | datetime.date
 
     def apply(self, value: ir.DateValue):
-        return diff_months(value, self.start)
+        return value.delta(_coerce_date(self.start), unit="month")
 
 
 @frozen
-class DaysSince(IntegerMethod):
+class DaysSince(ValueMethod[ir.DateValue, ir.IntegerValue]):
     start: ir.DateValue | datetime.date
 
     def apply(self, value: ir.DateValue):
-        return diff_days(value, self.start)
+        return value.delta(_coerce_date(self.start), unit="day")
 
 
 @frozen
-class AddMonths(DateMethod):
+class AddMonths(ValueMethod[ir.DateValue, ir.DateValue]):
+    """Add months to a date, returning a new date at start of month.
+
+    Note: Work-around for Ibis using `datetime.date`
+    which only supports fixed-length intervals, that is, not months.
+    """
+
     months: ir.IntegerValue | int
 
     def apply(self, value: ir.DateValue):
-        return add_months(value, self.months)
+        return DateAddMonth(
+            op_cast(value @ StartOfMonth()), op_cast(_coerce_int(self.months))
+        ).to_expr()
 
 
 @frozen
-class AddDays(DateMethod):
+class AddDays(ValueMethod[ir.DateValue, ir.DateValue]):
     days: ir.IntegerValue | int
 
     def apply(self, value: ir.DateValue):
-        return add_days(value, self.days)
+        return DateAddDay(
+            op_cast(value), op_cast(_coerce_int(self.days).cast(dt.int32))
+        ).to_expr()
 
 
 def now() -> ir.TimestampValue:
@@ -96,8 +105,9 @@ def now() -> ir.TimestampValue:
     return cast(ir.TimestampValue, timestamp)
 
 
+@deprecated("Use `date @ StartOfMonth()`")
 def truncate_month(date: ir.DateValue) -> ir.DateValue:
-    return date.truncate(DateUnit.MONTH)  # type: ignore
+    return date @ StartOfMonth()
 
 
 def _coerce_date(d: ir.DateValue | datetime.date) -> ir.DateValue:
@@ -112,34 +122,25 @@ def _coerce_int(n: ir.IntegerValue | int) -> ir.IntegerValue:
     return n
 
 
+@deprecated("Use `end @ MonthsSince()`")
 def diff_months(
     end: ir.DateValue, start: ir.DateValue | datetime.date
 ) -> ir.IntegerValue:
-    return end.delta(_coerce_date(start), unit="month")
+    return end @ MonthsSince(start)
 
 
+@deprecated("Use `end @ DaysSince()`")
 def diff_days(
     end: ir.DateValue, start: ir.DateValue | datetime.date
 ) -> ir.IntegerValue:
-    return end.delta(_coerce_date(start), unit="day")
+    return end @ DaysSince(start)
 
 
+@deprecated("Use `date @ AddMonths()`")
 def add_months(date: ir.DateValue, months: ir.IntegerValue | int) -> ir.DateValue:
-    """Add months to a date, returning a new date at start of month.
-
-    Note: Work-around for Ibis using `datetime.date`
-    which only supports fixed-length intervals, that is, not months.
-    """
-    return DateAddMonth(
-        op_cast(truncate_month(date)), op_cast(_coerce_int(months))
-    ).to_expr()
+    return date @ AddMonths(months)
 
 
+@deprecated("Use `date @ AddDays()`")
 def add_days(date: ir.DateValue, days: ir.IntegerValue | int) -> ir.DateValue:
-    """Add days to a date, returning a new date.
-
-    Note: Work-around for Ibis using `datetime.date`
-    """
-    return DateAddDay(
-        op_cast(date), op_cast(_coerce_int(days).cast(dt.int32))
-    ).to_expr()
+    return date @ AddDays(days)

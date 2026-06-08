@@ -10,12 +10,12 @@ from ibis_typing import (
     Expression,
     IbisSchema,
     IbisTable,
-    ibis_time,
     it,
     this,
     utils,
 )
 from ibis_typing.hypothesis import strategy_for
+from ibis_typing.ibis_time import StartOfMonth
 from ibis_typing.ibis_utils import Aggregate, Select
 
 
@@ -38,7 +38,7 @@ class MonthlyAmounts(Expression):
 
         table = (
             inputs.table
-            @ Select(expr={"month": ibis_time.truncate_month(this[cols.date])})
+            @ Select(expr={"month": this[cols.date] @ StartOfMonth()})
             @ Aggregate(by=["month"], sum=[cols.amount])
         )
 

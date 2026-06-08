@@ -7,24 +7,20 @@ from typing import Any, cast
 
 import ibis
 from ibis import Table, Value, ir
+from typing_extensions import deprecated
 
 from .custom import custom_operations
 from .custom.op_cast import op_cast
-from .ibis_extension_method import (
-    BooleanMethod,
-    IntegerMethod,
-    JSONMethod,
-    StringMethod,
-    UUIDMethod,
-)
+from .ibis_extension_method import ValueMethod
 
 
+@deprecated("Use `value @ ColumnChecksum()` instead")
 def column_checksum(value: Value) -> ir.IntegerValue:
     return value @ ColumnChecksum()
 
 
-class ColumnChecksum(IntegerMethod):
-    def apply(self, value: Value):
+class ColumnChecksum(ValueMethod[Value, ir.IntegerValue]):
+    def apply(self, value):
         return custom_operations.ColumnChecksum(arg=op_cast(value)).to_expr()
 
 
@@ -36,16 +32,17 @@ def literal_table(name: str, rows: Sequence, schema: ibis.Schema) -> Table:
     ).to_expr()
 
 
-class JsonParse(JSONMethod):
+class JsonParse(ValueMethod[ir.StringValue, ir.JSONValue]):
     def apply(self, value: ir.StringValue):
         return custom_operations.JsonParse(arg=cast(Any, value)).to_expr()
 
 
+@deprecated("Use `value @ JsonParse()` instead")
 def parse_json(value: ir.StringValue) -> ir.JSONValue:
     return value @ JsonParse()
 
 
-class JsonFormat(StringMethod):
+class JsonFormat(ValueMethod[ir.JSONValue, ir.StringValue]):
     """
     Format a JSON object as a string.
 
@@ -57,20 +54,22 @@ class JsonFormat(StringMethod):
         return custom_operations.JsonFormat(arg=op_cast(value)).to_expr()
 
 
+@deprecated("Use `value @ JsonFormat()` instead")
 def json_format(value: ir.JSONValue) -> ir.StringValue:
     return value @ JsonFormat()
 
 
-class IntToUUID(UUIDMethod):
+class IntToUUID(ValueMethod[ir.IntegerValue, ir.UUIDValue]):
     def apply(self, value: ir.IntegerValue):
         return custom_operations.UUIDFromInt(arg=op_cast(value)).to_expr()
 
 
+@deprecated("Use `value @ IntToUUID()` instead")
 def uuid_from_int(value: ir.IntegerValue) -> ir.UUIDValue:
     return value @ IntToUUID()
 
 
-class LuhnCheck(BooleanMethod):
+class LuhnCheck(ValueMethod[ir.StringValue, ir.BooleanValue]):
     """
     Validate a string using the Luhn algorithm (e.g., credit card numbers).
 
@@ -83,5 +82,6 @@ class LuhnCheck(BooleanMethod):
         return custom_operations.LuhnCheck(arg=op_cast(value)).to_expr()
 
 
+@deprecated("Use `value @ LuhnCheck()` instead")
 def luhn_check(value: ir.StringValue) -> ir.BooleanValue:
     return value @ LuhnCheck()

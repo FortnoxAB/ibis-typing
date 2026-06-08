@@ -109,7 +109,7 @@ class Select(TableMethod):
         expr: Mapping[it.NameOrType, Value] | None = None,
         drop: Sequence[it.NameOrType] = (),
     ):
-        self.__attrs_init__(names, expr, drop)
+        self.__attrs_init__(names, expr, drop)  # type: ignore
 
 
 @frozen(kw_only=True)

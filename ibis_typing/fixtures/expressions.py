@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
-from typing import cast
 
 import ibis
 import pytest
@@ -51,7 +50,7 @@ class EvaluateTable:
         rows = list(rows)
         inputs = (row for row in rows if not isinstance(row, target_table))
         outputs = (row for row in rows if isinstance(row, target_table))
-        expected = cast(list[E], sorted(outputs, key=str))
+        expected = sorted(outputs, key=str)
 
         in_tables = ibis_adapter.tables_of_rows(inputs, empty_tables=empty_tables)
         with checked_incremental_cache() as cache:
@@ -79,9 +78,7 @@ class FetchTable:
     ibis_connection: IbisConnection
 
     def __call__[T: IbisSchema](self, ibis_table: IbisTable[T]) -> list[T]:
-        return cast(
-            list[T], sorted(self.ibis_connection.fetch_table(ibis_table), key=str)
-        )
+        return sorted(self.ibis_connection.fetch_table(ibis_table), key=str)
 
 
 @frozen
