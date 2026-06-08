@@ -8,7 +8,6 @@ from __future__ import annotations
 from typing import TypedDict
 
 import hypothesis
-import ibis
 from attrs import frozen
 from hypothesis import given
 from ibis import ir, literal
@@ -16,6 +15,7 @@ from ibis import ir, literal
 from ibis_typing import IbisSchema, it, this
 from ibis_typing.hypothesis import strategy_for
 from ibis_typing.ibis_adapter import IbisDbSchema
+from ibis_typing.ibis_api import Desc
 from ibis_typing.ibis_utils import Aggregate, Select
 from ibis_typing.table_provider import (
     AbstractTableProvider,
@@ -141,8 +141,8 @@ def test_table_operations():
         @ d.cast({col.decimal: int})
         @ d.rename({col.integer: col.decimal})
         @ d.drop(col.integer, col.timestamp)
-        @ d.order_by(this[col.float].desc())
-        @ d.order_by(ibis.desc(col.float))
+        @ d.order_by(this[col.float] @ Desc())
+        @ d.order_by(col.float @ Desc())
         @ d.order_by(col.float)
         @ d.order_by("float")
     )

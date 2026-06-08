@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import abc
+from collections.abc import Sequence
 from typing import cast
 
 from attrs import frozen
@@ -17,7 +18,6 @@ deferred = cast(Table, Deferred())
 defer_val = cast(Value, Deferred())
 
 
-@frozen
 class TableMethod(ExtensionMethod[Table, Table], abc.ABC):
     """Apply operation to Table on left-hand side of this operator."""
 
@@ -50,7 +50,6 @@ class TableMethodExpression(SingleInputTableExpression):
         return origin.table @ self.method
 
 
-@frozen
 class ValueMethod[T: Value, R: Value](ExtensionMethod[T, R], abc.ABC):
     """Apply operation to Value on left-hand side of this operator."""
 
@@ -59,3 +58,15 @@ class ValueMethod[T: Value, R: Value](ExtensionMethod[T, R], abc.ABC):
 
     def __rmatmul__(self, other: T) -> R:
         return self.apply(other)
+
+
+class SelfMethod[T: Value](ValueMethod[T, T], abc.ABC):
+    pass
+
+
+@frozen(init=False)
+class ArgsMethod[T: Value](SelfMethod[T], abc.ABC):
+    args: Sequence[T]
+
+    def __init__(self, *args: T):
+        self.__attrs_init__(args)  # type: ignore
