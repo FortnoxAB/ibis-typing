@@ -14,11 +14,6 @@ from .custom.op_cast import op_cast
 from .ibis_extension_method import ValueMethod
 
 
-@deprecated("Use `value @ ColumnChecksum()` instead")
-def column_checksum(value: Value) -> ir.IntegerValue:
-    return value @ ColumnChecksum()
-
-
 class ColumnChecksum(ValueMethod[Value, ir.IntegerValue]):
     def apply(self, value):
         return custom_operations.ColumnChecksum(arg=op_cast(value)).to_expr()
@@ -37,11 +32,6 @@ class JsonParse(ValueMethod[ir.StringValue, ir.JSONValue]):
         return custom_operations.JsonParse(arg=cast(Any, value)).to_expr()
 
 
-@deprecated("Use `value @ JsonParse()` instead")
-def parse_json(value: ir.StringValue) -> ir.JSONValue:
-    return value @ JsonParse()
-
-
 class JsonFormat(ValueMethod[ir.JSONValue, ir.StringValue]):
     """
     Format a JSON object as a string.
@@ -54,19 +44,9 @@ class JsonFormat(ValueMethod[ir.JSONValue, ir.StringValue]):
         return custom_operations.JsonFormat(arg=op_cast(value)).to_expr()
 
 
-@deprecated("Use `value @ JsonFormat()` instead")
-def json_format(value: ir.JSONValue) -> ir.StringValue:
-    return value @ JsonFormat()
-
-
 class IntToUUID(ValueMethod[ir.IntegerValue, ir.UUIDValue]):
     def apply(self, value: ir.IntegerValue):
         return custom_operations.UUIDFromInt(arg=op_cast(value)).to_expr()
-
-
-@deprecated("Use `value @ IntToUUID()` instead")
-def uuid_from_int(value: ir.IntegerValue) -> ir.UUIDValue:
-    return value @ IntToUUID()
 
 
 class LuhnCheck(ValueMethod[ir.StringValue, ir.BooleanValue]):
@@ -80,6 +60,26 @@ class LuhnCheck(ValueMethod[ir.StringValue, ir.BooleanValue]):
 
     def apply(self, value: ir.StringValue):
         return custom_operations.LuhnCheck(arg=op_cast(value)).to_expr()
+
+
+@deprecated("Use `value @ ColumnChecksum()` instead")
+def column_checksum(value: Value) -> ir.IntegerValue:
+    return value @ ColumnChecksum()
+
+
+@deprecated("Use `value @ JsonParse()` instead")
+def parse_json(value: ir.StringValue) -> ir.JSONValue:
+    return value @ JsonParse()
+
+
+@deprecated("Use `value @ JsonFormat()` instead")
+def json_format(value: ir.JSONValue) -> ir.StringValue:
+    return value @ JsonFormat()
+
+
+@deprecated("Use `value @ IntToUUID()` instead")
+def uuid_from_int(value: ir.IntegerValue) -> ir.UUIDValue:
+    return value @ IntToUUID()
 
 
 @deprecated("Use `value @ LuhnCheck()` instead")

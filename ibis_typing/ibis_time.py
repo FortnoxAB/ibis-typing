@@ -105,11 +105,6 @@ def now() -> ir.TimestampValue:
     return cast(ir.TimestampValue, timestamp)
 
 
-@deprecated("Use `date @ StartOfMonth()`")
-def truncate_month(date: ir.DateValue) -> ir.DateValue:
-    return date @ StartOfMonth()
-
-
 def _coerce_date(d: ir.DateValue | datetime.date) -> ir.DateValue:
     if isinstance(d, datetime.date):
         return literal(d)
@@ -120,6 +115,11 @@ def _coerce_int(n: ir.IntegerValue | int) -> ir.IntegerValue:
     if isinstance(n, int):
         return literal(n)
     return n
+
+
+@deprecated("Use `date @ StartOfMonth()`")
+def truncate_month(date: ir.DateValue) -> ir.DateValue:
+    return date @ StartOfMonth()
 
 
 @deprecated("Use `end @ MonthsSince()`")
