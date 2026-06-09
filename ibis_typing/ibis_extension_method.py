@@ -4,18 +4,13 @@ from __future__ import annotations
 
 import abc
 from collections.abc import Sequence
-from typing import cast
 
 from attrs import frozen
 from ibis import Table, Value
 
-from ibis_typing.expression import GenericExpression, SingleInputTableExpression
-from ibis_typing.extension_method import Deferred, ExtensionMethod
-from ibis_typing.ibis_adapter import IbisSchema, IbisTable
-
-# Typed token for chaining instance methods after extension methods.
-deferred = cast(Table, Deferred())
-defer_val = cast(Value, Deferred())
+from .expression import GenericExpression, SingleInputTableExpression
+from .extension_method import ExtensionMethod
+from .ibis_adapter import IbisSchema, IbisTable
 
 
 class TableMethod(ExtensionMethod[Table, Table], abc.ABC):
