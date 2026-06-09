@@ -1,23 +1,4 @@
-r"""Provides typed `ibis.Table` operations.
-
-Collects library functions for writing typed `ibis.Table` expressions.
-
-Regex for migrating from function calls to infix operator calls follows.
-
-ibis_utils\.aggregate\(\s*([^,]+),
-$1 @ Aggregate(
-ibis_utils\.select\(\s*([^,]+),
-$1 @ Select(
-
-ibis_utils\.left_join\(\s*([^,]+),
-$1 @ LeftJoin(
-ibis_utils\.inner_join\(\s*([^,]+),
-$1 @ InnerJoin(
-ibis_utils\.outer_join\(\s*([^,]+),
-$1 @ OuterJoin(
-ibis_utils\.outer_join_parallel\(\s*([^,]+),
-$1 @ OuterJoinParallel(
-"""
+"""Provides typed `ibis.Table` operations."""
 
 from __future__ import annotations
 

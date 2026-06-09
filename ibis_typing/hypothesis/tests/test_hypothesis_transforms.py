@@ -16,7 +16,6 @@ from ibis_typing import (
 )
 from ibis_typing.hypothesis import strategy_for
 from ibis_typing.ibis_time import StartOfMonth
-from ibis_typing.ibis_utils import Aggregate, Select
 
 
 # Define input Ibis schema.
@@ -38,8 +37,8 @@ class MonthlyAmounts(Expression):
 
         table = (
             inputs.table
-            @ Select(expr={"month": this[cols.date] @ StartOfMonth()})
-            @ Aggregate(by=["month"], sum=[cols.amount])
+            @ it.Select(expr={"month": this[cols.date] @ StartOfMonth()})
+            @ it.Aggregate(by=["month"], sum=[cols.amount])
         )
 
         return cls.of(table)
@@ -93,7 +92,7 @@ def test_unique_values_for_ibis_strings(evaluate_table, rows: list[Input]):
 
         @classmethod
         def from_expression(cls, inputs: IbisTable[Input]):
-            table = inputs.table @ Aggregate(by=[inputs.cols.str_id])
+            table = inputs.table @ it.Aggregate(by=[inputs.cols.str_id])
             return cls.of(table)
 
     def iter_rows():

@@ -18,8 +18,7 @@ TRINO_PORT = 8080
 def trino_connection(trino_session_container) -> IbisConnection:
     host, port = get_container_host_port(trino_session_container, TRINO_PORT)
 
-    con = trino.Backend()
-    con.do_connect(
+    (con := trino.Backend()).do_connect(
         host=host,
         port=port,
         database="memory",

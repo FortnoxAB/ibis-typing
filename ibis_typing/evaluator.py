@@ -29,9 +29,7 @@ from . import (
     table_provider,
     this,
 )
-from .checksum_buckets import (
-    ChecksumBucketsIncrementTableExpression,
-)
+from .checksum_buckets import ChecksumBucketsIncrementTableExpression
 from .ibis_time import TimestampNow
 from .ibis_utils import Aggregate
 from .table_provider import FilteredTableProvider, TableProvider, TableProviders

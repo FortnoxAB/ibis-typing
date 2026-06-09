@@ -17,8 +17,8 @@ class Circle(sample_schemas.Circle, Expression):
     def from_expression(cls, params: IbisTable[CircleParameters]):
         cols = params.cols
 
-        table = params.table.mutate(
-            **{
+        table = params.table @ it.Select(
+            expr={
                 "area": this[cols.diameter] ** literal(2) * literal(math.pi),
                 "circumference": this[cols.diameter] * literal(2) * literal(math.pi),
             }

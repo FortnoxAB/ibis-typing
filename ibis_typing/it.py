@@ -31,7 +31,8 @@ from .ibis_connection import (
 from .ibis_defaults import (
     FillNulls,
 )
-from .ibis_extension_method import (
+from .ibis_deferred import (
+    defer,
     deferred,
 )
 from .ibis_time import (
@@ -130,6 +131,7 @@ __all__ = [
     "Time",
     "Timestamp",
     "TimestampNow",
+    "defer",
     "deferred",
     "this",
 ]

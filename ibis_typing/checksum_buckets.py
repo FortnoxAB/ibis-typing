@@ -14,7 +14,7 @@ from .expression import (
     TableExpression,
 )
 from .ibis_adapter import IbisSchema, IbisTable, this
-from .ibis_extension_method import deferred
+from .ibis_deferred import deferred
 from .ibis_joins import LeftJoin, OuterJoin
 from .ibis_ops import ColumnChecksum
 from .ibis_time import TimestampNow
@@ -24,6 +24,7 @@ __all__ = [
     "BucketedInputsExpression",
     "BucketedInputsParams",
     "ChecksumBuckets",
+    "ChecksumBucketsIncrementTableExpression",
     "ChecksumParams",
     "IncrementalExpression",
 ]

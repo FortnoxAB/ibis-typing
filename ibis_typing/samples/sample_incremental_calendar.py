@@ -9,7 +9,6 @@ from ibis_typing.checksum_buckets import (
 )
 from ibis_typing.ibis_adapter import IbisSchema, IbisTable
 from ibis_typing.ibis_time import DaysSince
-from ibis_typing.ibis_utils import Aggregate
 from ibis_typing.samples.generated import sample_schemas
 
 
@@ -32,7 +31,7 @@ class CalendarWidth(sample_schemas.CalendarWidth, BucketedInputsExpression):
         cols = inputs.cols
 
         args = cls.incremental_params
-        table = inputs.table @ Aggregate(
+        table = inputs.table @ it.Aggregate(
             by=args.group_by,
             arbitrary=[args.updated_at_col],
             expr={

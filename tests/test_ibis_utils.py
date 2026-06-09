@@ -106,7 +106,7 @@ def test_aggregate(fetch_table):
         arbitrary=[AggInputs.cols.arbitrary],
         sum=[AggInputs.cols.sum],
         max=[AggInputs.cols.max],
-        expr={AggExpr.cols.count: this[AggInputs.cols.id].count()},
+        expr={AggExpr.cols.count: this.count()},
     )
 
     actual = fetch_table(AggExpr.of(table))

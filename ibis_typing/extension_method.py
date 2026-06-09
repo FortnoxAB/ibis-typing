@@ -15,7 +15,7 @@ class ExtensionMethod[T, R](Protocol):
     def __rmatmul__(self, other: T) -> R: ...
 
 
-@frozen
+@frozen(repr=False)
 class Deferred[I, O](ExtensionMethod[I, O]):
     """Defer attributes and calls for later application.
 

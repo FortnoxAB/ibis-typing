@@ -41,8 +41,8 @@ def get_patchers():
 
 
 class TableExtensionMethodPatch(Table):
-    # Custom patch for adding type support for ExtensionMethod calls.
-    # Hi-jack any unpatched function.
+    # Custom patch for adding type support for `it.deferred.method()`
+    # Hi-jack any unpatched function for the patches, here: get_name.
 
     @overload
     def __rmatmul__(self, other: Table) -> Table: ...  # type: ignore
@@ -52,7 +52,7 @@ class TableExtensionMethodPatch(Table):
 
 
 class TableGetItem(Table):
-    # Type annotations for IntelliJ (treats Union types differently from pyright)
+    # Type annotations for IntelliJ (treats Union types differently from type checkers)
     # Primitives
     @overload
     def __getitem__(self, col: it.BooleanType) -> ir.BooleanColumn: ...
@@ -86,7 +86,7 @@ class TableGetItem(Table):
     @overload
     def __getitem__(self, col: it.JSONType) -> ir.JSONColumn: ...
 
-    # Type annotations for pyright
+    # Type annotations for type checker
     # Primitives
     @overload
     def __getitem__(self, col: it.Boolean) -> ir.BooleanColumn: ...
@@ -109,14 +109,13 @@ class TableGetItem(Table):
     def __getitem__(self, col: it.Decimal) -> ir.DecimalColumn: ...
     @overload
     def __getitem__(self, col: it.UUID) -> ir.UUIDColumn: ...
-    # Non-typed collections
+    # Collections
     @overload
     def __getitem__(self, col: it.Struct) -> ir.StructColumn: ...
-
-    @overload
-    def __getitem__(self, col: it.Array) -> ir.ArrayColumn: ...
     @overload
     def __getitem__(self, col: it.Map) -> ir.MapColumn: ...
+    @overload
+    def __getitem__(self, col: it.Array) -> ir.ArrayColumn: ...
     @overload
     def __getitem__(self, col: it.JSON) -> ir.JSONColumn: ...
 

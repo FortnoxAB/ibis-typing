@@ -9,8 +9,6 @@ from ibis import literal
 
 from ibis_typing import Expression, IbisSchema, IbisTable, it, this
 from ibis_typing.hypothesis import strategy_for, unique
-from ibis_typing.ibis_joins import LeftJoin
-from ibis_typing.ibis_utils import Aggregate, Select
 
 
 # Declare input Ibis schemas.
@@ -40,13 +38,13 @@ class Balance(Expression):
     ):
         cols = transactions.cols
 
-        transactions_table = transactions.table @ Aggregate(
+        transactions_table = transactions.table @ it.Aggregate(
             by=[cols.tenant_id], sum=[cols.amount]
         )
         table = (
             opening_balance.table
-            @ LeftJoin(transactions_table, keys=[cols.tenant_id])
-            @ Select(
+            @ it.LeftJoin(transactions_table, keys=[cols.tenant_id])
+            @ it.Select(
                 cols.tenant_id,
                 expr={
                     OpeningBalance.cols.balance: this[OpeningBalance.cols.balance]

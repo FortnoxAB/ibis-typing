@@ -30,6 +30,4 @@ def get_patchers():
 if TYPE_CHECKING:
     from typing import Self
 
-    from ibis import ir
-
-    _ = Self, ir  # Note: Somehow, Ibis forgot to import its `ir` namespace.
+    _ = Self
