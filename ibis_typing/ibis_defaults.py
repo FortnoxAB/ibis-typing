@@ -73,6 +73,7 @@ def fill_nulls(
     default_provider: DefaultProvider = numeric_or_bool_default_provider,
     array_length: ir.IntegerValue | int | None = None,
 ) -> Table:
+    names = names or table.columns
     default_provider = (
         default_provider
         if array_length is None
@@ -82,7 +83,7 @@ def fill_nulls(
     return table.mutate(
         **{
             cast(str, col): this[col].fill_null(default)
-            for col in (names or table.columns)
+            for col in names
             if (default := default_provider(table[col])) is not None
         }
     )

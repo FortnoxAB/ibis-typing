@@ -12,8 +12,7 @@ import ibis
 from attrs import frozen
 from ibis import literal
 
-from ibis_typing import ibis_types as it
-
+from . import ibis_types as it
 from . import utils
 
 logger = logging.getLogger(__name__)

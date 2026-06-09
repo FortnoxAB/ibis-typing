@@ -47,7 +47,7 @@ def get_patchers():
 
 
 class ValueExtensionMethodPatch(Value):
-    # Custom patch for adding type support for ExtensionMethod calls.
+    # Custom patch for adding type support for `it.defer(int).method()`
     # Hi-jack any unpatched function.
 
     @overload

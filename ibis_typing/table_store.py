@@ -35,15 +35,12 @@ logger = logging.getLogger(__name__)
 class TableStore(TableProvider, Protocol):
     def __call__[S: IbisSchema](self, schema: type[S]) -> IbisTable[S] | None:
         """Table Provider."""
-        ...
 
     def __contains__(self, schema: type[IbisSchema]) -> bool:
         """Query if table exists in store."""
-        ...
 
     def write_table(self, table: IbisTable) -> None:
         """Write table to store."""
-        ...
 
 
 @frozen

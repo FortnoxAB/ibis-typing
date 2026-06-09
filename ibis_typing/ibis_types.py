@@ -74,7 +74,7 @@ type DateCompatible = Timestamp | Date
 
 # Collections
 # Note: Collections might have non-hashable signatures,
-# in which case Pyright and other type checkers might complain.
+# in which case type checkers might complain.
 
 # Non-typed collections
 type Struct[T] = Mapping[str, Any] | StructType | None

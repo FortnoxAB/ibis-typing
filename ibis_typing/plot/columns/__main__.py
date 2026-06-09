@@ -34,7 +34,7 @@ class Params:
 
 
 def parse_args(argv=None) -> Params:
-    parser = argparse.ArgumentParser(description=__doc__)  # pyright: ignore[reportUnknownMemberType]
+    parser = argparse.ArgumentParser(description=__doc__)
     arg = parser.add_argument
 
     arg(

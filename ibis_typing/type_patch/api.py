@@ -27,8 +27,6 @@ def get_patchers():
 
 @overload
 def desc(expr: it.NameOrTypeOrValue, /, *, nulls_first: bool = False) -> ir.Value: ...  # type: ignore
-
-
 def desc(expr, /, *, nulls_first: bool = False) -> ir.Value:
     raise NotImplementedError
 
@@ -105,3 +103,5 @@ def and_(*predicates):
 
 if TYPE_CHECKING:
     from ibis_typing import ibis_types as it
+
+    _ = it
