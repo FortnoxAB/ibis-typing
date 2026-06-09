@@ -1,6 +1,6 @@
 """Sample writing and reading values from Schema.
 
-Demonstrates compatibility with pyright type checker and IntelliJ IDE.
+Demonstrates compatibility with type checker and IntelliJ IDE.
 """
 
 from __future__ import annotations
@@ -91,11 +91,9 @@ def test_collections_column_typing():
     _ = inputs.table @ Select(
         expr={
             col.array: this[col.array].map(map_fn).filter(filter_fn)[0],
-            # Note: Unhashable collection types cause type error when used as mapping keys.
-            # Easiest solution is to simply wrap the actual string in a str() call.
-            str(col.struct): this[col.struct]["amount"],
-            str(col.mapping): this[col.mapping].keys(),
-            str(col.json): this[col.json]["key"].array[0].float,
+            col.struct: this[col.struct]["amount"] @ it.defer(float).isnan(),
+            col.mapping: this[col.mapping].keys(),
+            col.json: this[col.json]["key"].array[0] @ it.defer(it.JSON).float,
         },
     )
 
@@ -142,7 +140,6 @@ def test_table_operations():
         @ d.rename({col.integer: col.decimal})
         @ d.drop(col.integer, col.timestamp)
         @ d.order_by(this[col.float] @ Desc())
-        @ d.order_by(col.float @ Desc())
         @ d.order_by(col.float)
         @ d.order_by("float")
     )
