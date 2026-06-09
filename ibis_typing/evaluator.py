@@ -25,11 +25,11 @@ from . import (
     IbisSchema,
     IbisTable,
     IncrementalExpression,
-    ibis_pyarrow,
     table_provider,
     this,
 )
 from .checksum_buckets import ChecksumBucketsIncrementTableExpression
+from .ibis_pyarrow import EvaluateExpr
 from .ibis_time import TimestampNow
 from .ibis_utils import Aggregate
 from .table_provider import FilteredTableProvider, TableProvider, TableProviders
@@ -147,7 +147,7 @@ def check_increment[E: IncrementalExpression](increment: IbisTable[E]):
     table = increment.table @ Aggregate(by=group_by, expr={col_name: this.count()})
 
     key_row_check = table[col_name].max().fill_null(literal(0))
-    if ibis_pyarrow.fetch_expr(key_row_check, type_=int) > 1:
+    if key_row_check @ EvaluateExpr() > 1:
         raise ValueError(f"Duplicate rows found for incremental key of {expr.__name__}")
 
 

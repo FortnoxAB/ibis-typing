@@ -63,9 +63,9 @@ class IbisSchema:
 
         # Use local import to simplify import ordering in ibis_typing.__init__ facade.
         # This allows convenient creation of tables without explicitly using ibis_pyarrow.
-        from . import ibis_pyarrow
+        from .ibis_pyarrow import LiteralTableFromRows
 
-        table = ibis_pyarrow.as_literal_table(rows)
+        table = rows @ LiteralTableFromRows()
         return cls.of(table)
 
 

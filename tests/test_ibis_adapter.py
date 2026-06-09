@@ -1,4 +1,5 @@
 import decimal
+import uuid
 from collections.abc import Mapping
 from typing import TypedDict
 
@@ -30,6 +31,9 @@ class Schema(IbisSchema):
     text: it.String = None
     date: it.Date = None
     timestamp: it.Timestamp = None
+    uuid: it.UUID = None
+    array: it.Array[it.String] = None
+    mapping: it.Map[it.String, it.Int64] = None
 
 
 @frozen
@@ -85,6 +89,9 @@ data = [
         text="Text",
         date=datetime.date(),
         timestamp=datetime,
+        uuid=uuid.UUID(int=1),
+        array=["a", "b"],
+        mapping={"c": 1, "d": 2},
     )
 ]
 
@@ -121,41 +128,6 @@ def test_fetch_table_expression(fetch_table):
     assert actual == expected
 
 
-def test_evaluate_table(evaluate_table):
-    rows = iter([OutputTable(output_id="1"), InputTable(input_id="1")])
-
-    actual, expected = evaluate_table(OutputTable, rows)
-
-    assert actual == expected
-
-
-def test_evaluate_table_with_arrays(evaluate_table):
-    rows = [ArrayTable(output_ids=["1"]), InputTable(input_id="1")]
-
-    actual, expected = evaluate_table(ArrayTable, rows)
-
-    assert actual == expected
-
-
-def test_evaluate_table_with_array_input(evaluate_table):
-    rows = [ArrayOutputTable(output_ids=["1"]), ArrayTable(output_ids=["1"])]
-
-    actual, expected = evaluate_table(ArrayOutputTable, rows)
-
-    assert actual == expected
-
-
-def test_fetch_map_table(fetch_table):
-    @frozen
-    class MyMap(IbisSchema):
-        map_value: it.Map[it.String, it.Int64] = None
-
-    rows = [MyMap({"key": 1})]
-
-    actual = list(fetch_table(MyMap.of_rows(rows)))
-    assert actual == rows
-
-
 def test_struct_table_raises_TypeError(fetch_table):
     @frozen
     class MyStruct(Expression):
@@ -179,6 +151,14 @@ def test_struct_table_raises_TypeError(fetch_table):
     table = MyStruct.from_expression(InputTable.of_rows([]))
     with pytest.raises(TypeError):
         fetch_table(table)
+
+
+def test_evaluate_table(evaluate_table):
+    rows = iter([OutputTable(output_id="1"), InputTable(input_id="1")])
+
+    actual, expected = evaluate_table(OutputTable, rows)
+
+    assert actual == expected
 
 
 def test_evaluate_table_raises_error_when_having_unused_inputs(evaluate_table):

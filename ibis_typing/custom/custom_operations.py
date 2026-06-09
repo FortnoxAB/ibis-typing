@@ -1,7 +1,9 @@
 """Custom Ibis operations provided by ibis-typing."""
 
-from typing import Any
+from collections.abc import Iterable
+from typing import Any, Self
 
+import ibis
 from attrs import frozen
 from ibis import Schema
 from ibis.common.collections import FrozenOrderedDict
@@ -74,7 +76,7 @@ class JsonFormat(Unary):
 class UUIDFromInt(Unary):
     """Conver an int to UUID"""
 
-    arg: Value
+    arg: Value[dt.Integer]
 
     @property
     def dtype(self):
@@ -108,16 +110,16 @@ class LiteralTable(Relation):
         return FrozenOrderedDict()
 
     @classmethod
-    def from_rows(cls, rows, schema, name):
+    def from_rows(cls, rows: Iterable, schema: ibis.Schema, name: str) -> Self:
         data = tuple(tuple(cls.literal(val) for val in row) for row in rows)
         return cls(data=data, schema=schema, name=name)
 
     @classmethod
-    def to_values(cls, data):
+    def to_values(cls, data) -> tuple[tuple, ...]:
         return tuple(tuple(cls.from_literal(val) for val in row) for row in data)
 
     @classmethod
-    def literal(cls, val: Any):
+    def literal(cls, val: Any) -> Any:
         match val:
             case list():
                 return _Array(tuple(cls.literal(val) for val in val))
@@ -129,7 +131,7 @@ class LiteralTable(Relation):
                 return val
 
     @classmethod
-    def from_literal(cls, val: Any):
+    def from_literal(cls, val: Any) -> Any:
         match val:
             case _Array():
                 return [cls.from_literal(v) for v in val.values]

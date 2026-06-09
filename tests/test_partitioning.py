@@ -25,7 +25,7 @@ def test_by_buckets_partition_policy():
     assert actual == expected
 
 
-def test_partition_columns(fetch_table):
+def test_partition_columns_creates_correct_partitions(fetch_table):
     rows = [
         SimpleSchema(id=0, value=2),
         SimpleSchema(id=1, value=3),

@@ -37,7 +37,6 @@ def test_select_cols(fetch_table, evaluate_expr):
 
     table = SimpleSchema.of_rows(rows).table @ Select(drop=[SimpleSchema.cols.value])
 
-    # Evaluate raw table mapping to avoid ignoring extra columns in the typed fetcher.
     actual = evaluate_expr(table)
 
     assert actual == cattrs.unstructure(expected)

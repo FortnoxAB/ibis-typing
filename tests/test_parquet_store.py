@@ -4,7 +4,8 @@ from unittest import mock
 
 from attrs import frozen
 
-from ibis_typing import IbisSchema, ibis_pyarrow, it, naming
+from ibis_typing import IbisSchema, it, naming
+from ibis_typing.ibis_pyarrow import EvaluateIbisTable
 from ibis_typing.table_store import ParquetTableStore
 
 
@@ -50,7 +51,7 @@ def test_parquet_table_store_roundtrip(tmp_path: Path):
 
     restored = store(InputSchema)
     assert restored
-    actual = list(ibis_pyarrow.fetch_table(restored))
+    actual = list(restored @ EvaluateIbisTable())
 
     assert actual == expected
 

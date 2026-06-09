@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Iterable
 from typing import Any, cast
 
 import ibis
@@ -19,7 +19,7 @@ class ColumnChecksum(ValueMethod[Value, ir.IntegerValue]):
         return custom_operations.ColumnChecksum(arg=op_cast(value)).to_expr()
 
 
-def literal_table(name: str, rows: Sequence, schema: ibis.Schema) -> Table:
+def literal_table(name: str, rows: Iterable, schema: ibis.Schema) -> Table:
     return custom_operations.LiteralTable.from_rows(
         rows,
         schema=schema,
@@ -45,6 +45,8 @@ class JsonFormat(ValueMethod[ir.JSONValue, ir.StringValue]):
 
 
 class IntToUUID(ValueMethod[ir.IntegerValue, ir.UUIDValue]):
+    """Convert Int64 to UUID."""
+
     def apply(self, value: ir.IntegerValue):
         return custom_operations.UUIDFromInt(arg=op_cast(value)).to_expr()
 

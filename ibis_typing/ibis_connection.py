@@ -6,9 +6,10 @@ from pathlib import Path
 import ibis
 from attrs import field, frozen
 
-from . import ibis_pyarrow, utils
+from . import utils
 from .custom import custom_compilers
 from .ibis_adapter import IbisSchema, IbisTable
+from .ibis_pyarrow import EvaluateExpr, EvaluateIbisTable
 
 custom_compilers.register_operations()
 
@@ -20,10 +21,10 @@ class IbisConnection:
     connection: ibis.BaseBackend = field(factory=ibis.get_backend)
 
     def fetch_table[T: IbisSchema](self, table: IbisTable[T]) -> Iterable[T]:
-        return ibis_pyarrow.fetch_table(table, self.connection)
+        return table @ EvaluateIbisTable(self.connection)
 
     def evaluate[V](self, expr: ibis.Expr, type_: type[V] | None = None) -> V:
-        return ibis_pyarrow.fetch_expr(expr, self.connection, type_=type_)
+        return expr @ EvaluateExpr(self.connection)
 
     def read_parquet[S: IbisSchema](
         self, path: Path, /, cls: type[S], **kwargs

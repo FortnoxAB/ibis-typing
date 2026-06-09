@@ -6,241 +6,271 @@ Provides a type compatibility layer between Python, Ibis, and PyArrow.
 
 from __future__ import annotations
 
-import functools
 import json
 import logging
 import uuid
 from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING, Any
-from typing import cast as typing_cast
+from typing import Any, cast
 
 import attrs
 import ibis
-import pyarrow as pa
+import pyarrow
 from attrs import frozen
-from ibis import ir
+from ibis import Column, Table, Value, ir
 from ibis.expr import datatypes as dt
 from ibis.expr import operations
+from typing_extensions import deprecated
 
-from . import ibis_ops, utils
+from . import IbisSchema, IbisTable, ibis_ops, utils
 from .custom.op_cast import op_cast
+from .ibis_extension_method import TableMethod, ValueMethod
 from .ibis_ops import JsonFormat, JsonParse
 
 STRUCT_NOT_SUPPORTED = "Struct values are not supported. Convert to supported types."
 
-
-if TYPE_CHECKING:
-    from . import IbisSchema, IbisTable
-
 logger = logging.getLogger(__name__)
 
 
-def fetch_expr[T](
-    expr: ibis.Expr,
-    /,
-    connection: ibis.BaseBackend | None = None,
-    *,
-    type_: type[T] | None = None,
-) -> T:
-    backend = connection or expr._find_backend(use_default=True)
-    ret = backend.to_pyarrow(expr)
-    ret: pa.Scalar | pa.ChunkedArray | pa.Table
-    match ret:
-        case pa.Scalar():
-            return ret.as_py()
-        case pa.ChunkedArray() | pa.Table():
-            return ret.to_pylist()
-        case _:
-            raise TypeError(f"Unexpected pyarrow type: {type(ret)}")
+@frozen
+class EvaluateExpr:
+    connection: ibis.BaseBackend | None = None
 
+    def __rmatmul__(self, expr: ibis.Expr) -> Any:
+        if isinstance(expr, Table):
+            columns = expr.columns
+            rows = expr @ EvaluateTable(self.connection)
+            return [dict(zip(columns, row)) for row in rows]
 
-def fetch_table[T: IbisSchema](
-    ibis_table: IbisTable[T],
-    /,
-    connection: ibis.BaseBackend | None = None,
-) -> Iterable[T]:
-    backend = connection or ibis_table.table._find_backend(use_default=True)
-    converter = PyArrowConverter(ibis_table.table_schema)
-
-    converted = converter.ibis_to_pyarrow(ibis_table.table)
-    batches = backend.to_pyarrow_batches(converted, chunk_size=1_000)
-    for batch in batches:
-        logger.debug("Fetching batch from query result.")
-        rows = zip(*batch.to_pydict().values())
-        yield from (converter.pyarrow_to_py(row) for row in rows)
-
-
-def as_literal_table(
-    rows: Sequence[IbisSchema], *, name: str | None = None
-) -> ibis.Table:
-    assert rows
-    cls = type(rows[0])
-    name = name or f"{cls.__name__}__{utils.short_hash(rows)}"
-
-    converter = PyArrowConverter(cls)
-
-    pyarrows = [converter.py_to_pyarrow(row) for row in rows]
-    schema = converter.ibis_to_pyarrow(ibis.table(cls.table_schema)).schema()
-
-    table = ibis_ops.literal_table(name, pyarrows, schema)
-
-    return converter.pyarrow_to_ibis(table)
+        assert isinstance(expr, Value)
+        return expr @ EvaluateValue(self.connection)
 
 
 @frozen
-class PyArrowConverter[T: IbisSchema]:
-    schema: type[T]
+class EvaluateValue:
+    connection: ibis.BaseBackend | None = None
 
-    def py_to_pyarrow(self, value: T) -> tuple:
-        values = attrs.astuple(value)
-        return tuple(py_to_pyarrow(val, t) for val, t in zip(values, self.ibis_types()))
+    def __rmatmul__(self, expr: Value) -> Any:
+        backend = self.connection or expr._find_backend(use_default=True)
+        value = expr @ ValueToArrowCompat(expr.type())
 
-    def pyarrow_to_py(self, row: tuple) -> T:
-        values = (pyarrow_to_py(val, t) for val, t in zip(row, self.ibis_types()))
-        return self.schema(*values)
+        if isinstance(expr, Column):
+            batches: Iterable[pyarrow.RecordBatch] = backend.to_pyarrow_batches(
+                value, chunk_size=1_000
+            )
+            values = (val for batch in batches for val in batch.to_pylist())
+            return [val @ PyFromArrowCompat(expr.type()) for val in values]
 
-    @functools.lru_cache
-    def ibis_types(self) -> tuple[dt.DataType, ...]:
-        return tuple(self.ibis_schema().values())
+        arrow_obj = cast(pyarrow.Scalar, backend.to_pyarrow(value))
+        return arrow_obj.as_py() @ PyFromArrowCompat(expr.type())
 
-    def pyarrow_to_ibis(self, table: ibis.Table) -> ibis.Table:
-        schema = self.ibis_schema()
-        upgrades = {col: pyarrow_to_ibis(table[col], t) for col, t in schema.items()}
+
+@frozen
+class EvaluateIbisTable:
+    connection: ibis.BaseBackend | None = None
+
+    def __rmatmul__[T: IbisSchema](self, table: IbisTable[T]) -> Iterable[T]:
+        rows = table.table @ EvaluateTable(backend=self.connection)
+        yield from (table.table_schema(*row) for row in rows)
+
+
+@frozen
+class EvaluateTable:
+    backend: ibis.BaseBackend | None = None
+    chunk_size: int = 1_000
+
+    def __rmatmul__(self, table: ir.Table) -> Iterable[tuple]:
+        backend = self.backend or table._find_backend(use_default=True)
+        compat = table @ TableToArrowCompat()
+
+        batches: Iterable[pyarrow.RecordBatch] = backend.to_pyarrow_batches(
+            compat, chunk_size=self.chunk_size
+        )
+        # Transpose column-based to row-based
+        rows = (row for batch in batches for row in zip(*batch.to_pydict().values()))
+        yield from (row @ TupleFromArrowCompat(table.schema()) for row in rows)
+
+
+@deprecated("Use `rows @ LiteralTableFromRows()`")
+def as_literal_table(
+    rows: Sequence[IbisSchema], *, name: str | None = None
+) -> ibis.Table:
+    return rows @ LiteralTableFromRows(name)
+
+
+@frozen
+class LiteralTableFromRows:
+    name: str | None = None
+
+    def __rmatmul__(self, rows: Sequence[IbisSchema]) -> ibis.Table:
+        assert rows
+        cls = type(rows[0])
+        name = self.name or f"{cls.__name__}__{utils.short_hash(rows)}"
+
+        origin = ibis.schema(cls.table_schema)
+
+        data = [attrs.astuple(row) @ TupleToArrowCompat(origin) for row in rows]
+        schema = (ibis.table(origin) @ TableToArrowCompat()).schema()
+
+        table = ibis_ops.literal_table(name, data, schema)
+
+        return table @ TableFromArrowCompat(origin)
+
+
+@frozen
+class TupleToArrowCompat:
+    schema: ibis.Schema
+
+    def __rmatmul__(self, other: tuple) -> tuple:
+        return tuple(
+            val @ PyToArrowCompat(t) for val, t in zip(other, self.schema.values())
+        )
+
+
+@frozen
+class TupleFromArrowCompat:
+    schema: ibis.Schema
+
+    def __rmatmul__(self, other: tuple) -> tuple:
+        return tuple(
+            val @ PyFromArrowCompat(t) for val, t in zip(other, self.schema.values())
+        )
+
+
+@frozen
+class TableFromArrowCompat(TableMethod):
+    schema: ibis.Schema
+
+    def apply(self, table: Table):
+        upgrades = {
+            col: table[col] @ ValueFromArrowCompat(t) for col, t in self.schema.items()
+        }
         return table.mutate(**upgrades)
 
-    def ibis_to_pyarrow(self, table: ibis.Table) -> ibis.Table:
-        schema = self.ibis_schema()
-        downgrades = {col: ibis_to_pyarrow(table[col], t) for col, t in schema.items()}
+
+@frozen
+class TableToArrowCompat(TableMethod):
+    def apply(self, table: Table):
+        downgrades = {
+            col: table[col] @ ValueToArrowCompat(t) for col, t in table.schema().items()
+        }
         return table.mutate(**downgrades)
 
-    @functools.lru_cache
-    def ibis_schema(self) -> ibis.Schema:
-        return ibis.schema(self.schema.table_schema)
+
+@frozen
+class PyToArrowCompat:
+    typ: dt.DataType
+
+    def __rmatmul__(self, other: Any) -> Any:
+        if (value := other) is None:
+            return None
+
+        match self.typ:
+            case dt.UUID():
+                return str(value)
+            case dt.JSON():
+                return json.dumps(value, indent=None, separators=(",", ":"))
+            case dt.Array():
+                val_t = cast(dt.DataType, self.typ.value_type)
+                val_compat = PyToArrowCompat(val_t)
+                return [v @ val_compat for v in value]
+            case dt.Map():
+                key_t = cast(dt.DataType, self.typ.key_type)
+                val_t = cast(dt.DataType, self.typ.value_type)
+                key_compat = PyToArrowCompat(key_t)
+                val_compat = PyToArrowCompat(val_t)
+                return {
+                    key @ key_compat: val @ val_compat for key, val in value.items()
+                }
+            case dt.Struct():
+                raise TypeError(STRUCT_NOT_SUPPORTED)
+            case _:
+                return value
 
 
-def py_to_pyarrow(value: Any, /, typ: dt.DataType) -> Any:
-    """Convert Python types to PyArrow compatible types."""
-    if value is None:
-        return None
+@frozen
+class PyFromArrowCompat:
+    typ: dt.DataType
 
-    match typ:
-        case dt.UUID():
-            return str(value)
-        case dt.JSON():
-            return json.dumps(value, indent=None, separators=(",", ":"))
-        case dt.Array():
-            return [
-                py_to_pyarrow(v, typing_cast(dt.DataType, typ.value_type))
-                for v in value
-            ]
-        case dt.Map():
-            return {
-                py_to_pyarrow(
-                    key, typing_cast(dt.DataType, typ.key_type)
-                ): py_to_pyarrow(val, typing_cast(dt.DataType, typ.value_type))
-                for key, val in value.items()
-            }
-        case dt.Struct():
-            raise TypeError(STRUCT_NOT_SUPPORTED)
-        case _:
-            return value
+    def __rmatmul__(self, other: Any) -> Any:
+        if (value := other) is None:
+            return None
 
-
-def pyarrow_to_py(value: Any, typ: dt.DataType) -> Any:
-    """Restore Python types from PyArrow compatible types."""
-    if value is None:
-        return None
-
-    match typ:
-        case dt.UUID():
-            return uuid.UUID(value)
-        case dt.JSON():
-            return json.loads(value)
-        case dt.Array():
-            return [
-                pyarrow_to_py(val, typing_cast(dt.DataType, typ.value_type))
-                for val in value
-            ]
-        case dt.Map():
-            return {
-                pyarrow_to_py(
-                    key, typing_cast(dt.DataType, typ.key_type)
-                ): pyarrow_to_py(val, typing_cast(dt.DataType, typ.value_type))
-                for key, val in value
-            }
-        case dt.Struct():
-            raise TypeError(STRUCT_NOT_SUPPORTED)
-        case _:
-            return value
+        match self.typ:
+            case dt.UUID():
+                return uuid.UUID(value)
+            case dt.JSON():
+                return json.loads(value)
+            case dt.Array():
+                val_t = cast(dt.DataType, self.typ.value_type)
+                val_compat = PyFromArrowCompat(val_t)
+                return [val @ val_compat for val in value]
+            case dt.Map():
+                key_t = cast(dt.DataType, self.typ.key_type)
+                val_t = cast(dt.DataType, self.typ.value_type)
+                key_compat = PyFromArrowCompat(key_t)
+                val_compat = PyFromArrowCompat(val_t)
+                return {key @ key_compat: val @ val_compat for key, val in value}
+            case dt.Struct():
+                raise TypeError(STRUCT_NOT_SUPPORTED)
+            case _:
+                return value
 
 
-def pyarrow_to_ibis(value: ir.Value, typ: dt.DataType) -> ir.Value:
-    """Restore Ibis types from PyArrow compatible types."""
-    match typ:
-        case dt.UUID():
-            assert isinstance(value, ir.StringValue)
-            return value.cast(dt.UUID)
-        case dt.JSON():
-            assert isinstance(value, ir.StringValue)
-            return value @ JsonParse()
-        case dt.Array():
-            assert isinstance(value, ir.ArrayValue)
-            return value.map(
-                lambda val: pyarrow_to_ibis(
-                    val, typing_cast(dt.DataType, typ.value_type)
+@frozen
+class ValueFromArrowCompat(ValueMethod):
+    typ: dt.DataType
+
+    def apply(self, value):
+        match self.typ:
+            case dt.UUID():
+                assert isinstance(value, ir.StringValue)
+                return value.cast(dt.UUID)
+            case dt.JSON():
+                assert isinstance(value, ir.StringValue)
+                return value @ JsonParse()
+            case dt.Array():
+                assert isinstance(value, ir.ArrayValue)
+                val_t = cast(dt.DataType, self.typ.value_type)
+                return value.map(ValueFromArrowCompat(val_t).apply)
+            case dt.Map():
+                assert isinstance(value, ir.MapValue)
+                key_t = cast(dt.DataType, self.typ.key_type)
+                val_t = cast(dt.DataType, self.typ.value_type)
+                return ibis.map(
+                    value.keys().map(ValueFromArrowCompat(key_t).apply),
+                    value.values().map(ValueFromArrowCompat(val_t).apply),
                 )
-            )
-        case dt.Map():
-            assert isinstance(value, ir.MapValue)
-            return ibis.map(
-                value.keys().map(
-                    lambda val: pyarrow_to_ibis(
-                        val, typing_cast(dt.DataType, typ.key_type)
-                    )
-                ),
-                value.values().map(
-                    lambda val: pyarrow_to_ibis(
-                        val, typing_cast(dt.DataType, typ.value_type)
-                    )
-                ),
-            )
-        case dt.Struct():
-            raise TypeError(STRUCT_NOT_SUPPORTED)
-        case _:
-            return operations.Cast(op_cast(value), to=typ).to_expr()
+            case dt.Struct():
+                raise TypeError(STRUCT_NOT_SUPPORTED)
+            case _:
+                return operations.Cast(op_cast(value), to=self.typ).to_expr()
 
 
-def ibis_to_pyarrow(value: ir.Value, typ: dt.DataType) -> ir.Value:
-    """Downgrade Ibis types to PyArrow compatible types."""
-    match typ:
-        case dt.UUID():
-            assert isinstance(value, ir.UUIDValue)
-            return value.cast(str)
-        case dt.JSON():
-            assert isinstance(value, ir.JSONValue)
-            return value @ JsonFormat()
-        case dt.Array():
-            assert isinstance(value, ir.ArrayValue)
-            return value.map(
-                lambda val: ibis_to_pyarrow(
-                    val, typing_cast(dt.DataType, typ.value_type)
+@frozen
+class ValueToArrowCompat(ValueMethod):
+    typ: dt.DataType
+
+    def apply(self, value):
+        match self.typ:
+            case dt.UUID():
+                assert isinstance(value, ir.UUIDValue)
+                return value.cast(str)
+            case dt.JSON():
+                assert isinstance(value, ir.JSONValue)
+                return value @ JsonFormat()
+            case dt.Array():
+                assert isinstance(value, ir.ArrayValue)
+                val_t = cast(dt.DataType, self.typ.value_type)
+                return value.map(ValueToArrowCompat(val_t).apply)
+            case dt.Map():
+                assert isinstance(value, ir.MapValue)
+                key_t = cast(dt.DataType, self.typ.key_type)
+                val_t = cast(dt.DataType, self.typ.value_type)
+                return ibis.map(
+                    value.keys().map(ValueToArrowCompat(key_t).apply),
+                    value.values().map(ValueToArrowCompat(val_t).apply),
                 )
-            )
-        case dt.Map():
-            assert isinstance(value, ir.MapValue)
-            return ibis.map(
-                value.keys().map(
-                    lambda val: ibis_to_pyarrow(
-                        val, typing_cast(dt.DataType, typ.key_type)
-                    )
-                ),
-                value.values().map(
-                    lambda val: ibis_to_pyarrow(
-                        val, typing_cast(dt.DataType, typ.value_type)
-                    )
-                ),
-            )
-        case dt.Struct():
-            raise TypeError(STRUCT_NOT_SUPPORTED)
-        case _:
-            return operations.Cast(op_cast(value), to=typ).to_expr()
+            case dt.Struct():
+                raise TypeError(STRUCT_NOT_SUPPORTED)
+            case _:
+                return operations.Cast(op_cast(value), to=self.typ).to_expr()
