@@ -133,14 +133,14 @@ def test_join_client_tenant_composite(evaluate_table, inputs: list[Inputs]):
             tenant_id=tenant.tenant_id,
             bookkeeping_license=tenant.bookkeeping_license,
             # Column duplication elimination strategies
-            has_manual_review=client.has_manual_review
-            if client.has_manual_review is not None
+            has_manual_review=c
+            if (c := client.has_manual_review) is not None
             else tenant.has_manual_review,
-            updated_at=max(client.updated_at, tenant.updated_at or client.updated_at)
-            if client.updated_at is not None
+            updated_at=max(c, tenant.updated_at or c)
+            if (c := client.updated_at) is not None
             else tenant.updated_at,
-            risk_level=min(client.risk_level, tenant.risk_level or client.risk_level)
-            if client.risk_level is not None
+            risk_level=min(c, tenant.risk_level or c)
+            if (c := client.risk_level) is not None
             else tenant.risk_level,
         )
         for mapping, client, tenant in inputs

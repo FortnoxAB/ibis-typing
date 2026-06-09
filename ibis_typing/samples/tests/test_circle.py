@@ -10,9 +10,9 @@ def test_circle_calculations(evaluate_table):
     ]
     outputs = [
         Circle(
-            diameter=p.diameter,
-            area=p.diameter and p.diameter**2 * math.pi,
-            circumference=p.diameter and p.diameter * 2 * math.pi,
+            diameter=(d := p.diameter),
+            area=d and d**2 * math.pi,
+            circumference=d and d * 2 * math.pi,
         )
         for p in inputs
     ]

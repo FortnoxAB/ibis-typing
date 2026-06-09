@@ -13,7 +13,5 @@ def duck_connection(monkeypatch):
 
 class IbisDuckConnection(IbisConnection):
     def __init__(self):
-        connection = duckdb.Backend()
-        connection.do_connect(memory_limit="1GB")
-
+        (connection := duckdb.Backend()).do_connect(memory_limit="1GB")
         super().__init__(connection)
