@@ -32,6 +32,7 @@ class Schema(IbisSchema):
     date: it.Date = None
     timestamp: it.Timestamp = None
     uuid: it.UUID = None
+    json: it.JSON = None
     array: it.Array[it.String] = None
     mapping: it.Map[it.String, it.Int64] = None
 
@@ -90,6 +91,7 @@ data = [
         date=datetime.date(),
         timestamp=datetime,
         uuid=uuid.UUID(int=1),
+        json={"obj": {"array": [1, 2]}},
         array=["a", "b"],
         mapping={"c": 1, "d": 2},
     )
