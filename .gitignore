@@ -15,5 +15,7 @@ dist/
 *.egg-info/
 # Outputs
 output/
+# Rope refactoring outputs
+.ropeproject/
 # AI agent config (local use only)
 AGENTS.md

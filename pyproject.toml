@@ -60,7 +60,10 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     # Testing
+    "libcst>=1.8.6",
     "pytest>=8",
+    "rope>=1.14.0",
+    "ruff>=0.7",
     "testcontainers>=4",
 ]
 
@@ -76,7 +79,6 @@ dev = [
     "uv>=0.4",
     # QA
     "coverage>=7",
-    "ruff>=0.7",
     "ty>=0.0.24",
     "prek>=0.4.4",
 ]
@@ -97,7 +99,9 @@ DEP002 = [# defined as a dependency but not used in the codebase
     "typing-extensions", # Useful for transient deprecation warnings
 ]
 DEP004 = [# imported but declared as a dev dependency
+    "libcst",
     "pytest",
+    "rope",
     "ruff",
 ]
 

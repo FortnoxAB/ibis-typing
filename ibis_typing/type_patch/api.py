@@ -28,7 +28,7 @@ def get_patchers():
 @overload
 def desc(expr: it.NameOrTypeOrValue, /, *, nulls_first: bool = False) -> ir.Value: ...  # type: ignore
 def desc(expr, /, *, nulls_first: bool = False) -> ir.Value:
-    raise NotImplementedError
+    return ibis.desc(expr, nulls_first=nulls_first)
 
 
 @overload
@@ -58,7 +58,7 @@ def cases[V: Value](
 @overload
 def cases(branch, *branches, else_=None) -> ir.Value: ...
 def cases(branch, *branches, else_=None):
-    return ibis.cases(branch, *branches, else_)
+    return ibis.cases(branch, *branches, else_=else_)
 
 
 @overload

@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 import decimal
 import uuid
-from typing import cast, overload
+from typing import Any, cast, overload
 
 from ibis import Table, Value, ir
 
@@ -48,6 +48,6 @@ def defer(type_: type[it.Struct]) -> ir.StructValue: ...
 @overload
 def defer(type_: type[it.JSON]) -> ir.JSONValue: ...
 @overload
-def defer() -> ir.Table: ...
+def defer(type_: Any = None) -> ir.Value: ...
 def defer(type_=None):
     return Deferred()
