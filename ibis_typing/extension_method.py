@@ -50,7 +50,8 @@ class Deferred[I, O](ExtensionMethod[I, O]):
         return self @ GetItem(item)
 
     def __repr__(self):
-        return self.__class__.__name__ + " @ " + "".join(repr(op) for op in self._chain)
+        parts = [self.__class__.__name__, " @ ", *(f"{op!r}" for op in self._chain)]
+        return "".join(parts)
 
 
 @frozen(repr=False)
@@ -64,9 +65,10 @@ class Call(ExtensionMethod):
         return other(*self.args, **self.kwargs)
 
     def __repr__(self):
-        args = ", ".join(repr(v) for v in self.args)
-        kwargs = ", ".join(f"{kw}={arg!r}" for kw, arg in self.kwargs.items())
-        return f"({args}{', ' if kwargs else ''}{kwargs})"
+        args = (f"{v!r}" for v in self.args)
+        kwargs = (f"{kw}={arg!r}" for kw, arg in self.kwargs.items())
+        params = ", ".join([*args, *kwargs])
+        return f"({params})"
 
 
 @frozen(repr=False)
