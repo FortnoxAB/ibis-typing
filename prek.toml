@@ -1,0 +1,17 @@
+# prek -- pre-commit configuration
+[[repos]]
+# Linting and formatting
+repo = "https://github.com/astral-sh/ruff-pre-commit"
+rev = "v0.15.16"
+hooks = [
+    { id = "ruff-check", args = ["--fix"], types_or = ["python", "pyi"] },
+    { id = "ruff-format", types_or = ["python", "pyi"] },
+]
+
+[[repos]]
+# Type checking
+repo = "https://github.com/astral-sh/ty-pre-commit"
+rev = "v0.0.48"
+hooks = [
+    { id = "ty" },
+]

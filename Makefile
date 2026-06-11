@@ -35,6 +35,7 @@ deps:
 update_deps:
 	uv lock --upgrade
 	make clean deps
+	uv run prek auto-update
 
 update_expected: export UPDATE_EXPECTED=Y
 update_expected:
@@ -79,5 +80,6 @@ lint:
 # IDE
 setup_ide:
 	uv run python3 -m ibis_typing.ide.setup_ide
+	uv run prek install --overwrite
 setup_ide_update:
 	uv run python3 -m ibis_typing.ide.setup_ide --update-templates
