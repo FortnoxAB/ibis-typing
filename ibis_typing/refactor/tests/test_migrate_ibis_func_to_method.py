@@ -23,6 +23,16 @@ def test_parenthesize_left_with_binary_operator():
     assert result == "(a + b) @ it.Desc()"
 
 
+def test_parenthesize_left_with_comparison():
+    result = rewrite("ibis.ifelse(a > b, c, d)")
+    assert result == "(a > b) @ it.IfElse(c, d)"
+
+
+def test_parenthesize_left_with_bool_operator():
+    result = rewrite("ibis.ifelse(a and b, c, d)")
+    assert result == "(a and b) @ it.IfElse(c, d)"
+
+
 def test_non_ibis_call_untouched():
     source = "foo.desc(x)"
     actual = rewrite_source(source)

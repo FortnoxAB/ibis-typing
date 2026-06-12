@@ -33,9 +33,10 @@ class MatMul:
     def __rmatmul__(self, left: cst.BaseExpression) -> cst.BinaryOperation:
         # Parenthesize left operator if it's a binary operation
         # to ensure correct order of operations.
-        if isinstance(left, cst.BinaryOperation) and not isinstance(
-            left.operator, cst.MatrixMultiply
-        ):
+        if (
+            isinstance(left, cst.BinaryOperation)
+            and not isinstance(left.operator, cst.MatrixMultiply)
+        ) or isinstance(left, (cst.Comparison, cst.BooleanOperation)):
             left = left @ Parenthesize()
         return cst.BinaryOperation(left, cst.MatrixMultiply(), self.right)
 
