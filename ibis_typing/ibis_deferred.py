@@ -15,6 +15,9 @@ deferred = cast(Table, Deferred())
 defer_val = cast(Value, Deferred())
 
 
+# Ibis value types
+@overload
+def defer[T: ir.Value](type_: type[T]) -> T: ...
 # Primitives
 @overload
 def defer(type_: type[bool]) -> ir.BooleanValue: ...

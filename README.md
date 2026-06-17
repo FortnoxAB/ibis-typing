@@ -72,7 +72,7 @@ from attrs import frozen
 from collections.abc import Sequence
 from ibis_typing import Expression, IbisTable, this, it
 from ibis_typing.ibis_extension_method import TableMethod, ValueMethod
-from ibis import Table, ir
+from ibis import Table, ir, literal
 
 
 @frozen
@@ -83,7 +83,11 @@ class MonthlyAmounts(Expression):
     @classmethod
     def from_expression(cls, inputs: IbisTable[Transaction]):
         cols = inputs.cols
-        table = inputs.table @ AggregateByMonth(cols.date, sums=[cols.amount])
+        table = (
+            inputs.table
+            @ AggregateByMonth(cols.date, sums=[cols.amount])
+            @ it.deferred.filter(this[cols.amount] != literal(0))
+        )
         return cls.of(table)
 
 
@@ -103,7 +107,7 @@ class AggregateByMonth(TableMethod):
 @frozen
 class StartOfMonth(ValueMethod[ir.DateValue, ir.DateValue]):
     def apply(self, value: ir.DateValue):
-        return value.truncate("M")
+        return value @ it.defer(ir.DateValue).truncate("M")
 ```
 
 > **Tip:** `IbisSchema` classes for your `Expression` outputs can be generated automatically using
@@ -181,6 +185,7 @@ graph TD
 | `Expression`                | Abstract base for typed ibis transforms                                      |
 | `TableMethod`               | Extension method on `ibis.Table` returning another Table                     |
 | `ValueMethod`               | Extension method on `ibis.Value` returning another Value                     |
+| `Deferred`                  | `table @ it.deferred.distinct()` `value @ it.defer().notnull()`              |
 | `IbisConnection`            | Typed backend wrapper: `fetch_table()`, `evaluate()`, `read/write_parquet()` |
 | `BucketedInputsExpression`  | Expression that only re-runs for changed input buckets                       |
 | `ChecksumBuckets`           | Checksum-based incremental input tracking                                    |
@@ -207,7 +212,9 @@ it.Struct[MyTypedDict]
 
 ## Table operations
 
-Use the infix `@` operator for composable, typed table transforms via `TableMethod`:
+Use the infix `@` operator for composable, typed table transforms via `TableMethod`. 
+Standard Ibis Table methods are available via `it.deferred.distinct()`.
+Ibis Value methods are available via e.g. `it.defer(type_=ir.Value).notnull()`.
 
 ```python
 from ibis_typing import IbisSchema, IbisTable, this, it
@@ -231,6 +238,7 @@ table = (
     @ it.Select(cols.a, cols.b, expr={"c": this[cols.a] + this[cols.b]})
     @ it.Aggregate(by=[cols.category], sum=[cols.amount])
     @ it.InnerJoin(other_table.table, keys=[cols.key])
+    @ it.deferred.filter(this[cols.amount] != 0)
 )
 ```
 
