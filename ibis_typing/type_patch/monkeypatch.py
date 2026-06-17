@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any, overload
 
-from _pytest.compat import NOTSET, NotSetType
 from _pytest.monkeypatch import MonkeyPatch
 
 from .patchers import MethodOverloadPatcher
@@ -24,14 +23,15 @@ class SetAttr(MonkeyPatch):  # type: ignore
         self,
         target: Any,
         name: object,
-        value: NotSetType = NOTSET,
+        value=...,
         raising: bool = True,
     ) -> None: ...
+
     def setattr(
         self,
         target: str | object,
         name: object | str,
-        value: object = NOTSET,
+        value: object = ...,
         raising: bool = True,
     ) -> None: ...
 
@@ -41,12 +41,13 @@ class DelAttr(MonkeyPatch):  # type: ignore
     def delattr(  # type: ignore
         self,
         target: Any,
-        name: NotSetType = NOTSET,
+        name=...,
         raising: bool = True,
     ) -> None: ...
+
     def delattr(
         self,
         target: object | str,
-        name: str | NotSetType = NOTSET,
+        name=...,
         raising: bool = True,
     ) -> None: ...
