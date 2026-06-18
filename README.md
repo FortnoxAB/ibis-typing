@@ -68,6 +68,7 @@ class Transaction(IbisSchema):
 ### 2. Define a typed expression
 
 ```python
+# my_app.expressions_pkg.monthly_amounts
 from attrs import frozen
 from collections.abc import Sequence
 from ibis_typing import Expression, IbisTable, this, it
@@ -77,9 +78,6 @@ from ibis import Table, ir, literal
 
 @frozen
 class MonthlyAmounts(Expression):
-    month: it.Date = None
-    amount: it.Float64 = None
-
     @classmethod
     def from_expression(cls, inputs: IbisTable[Transaction]):
         cols = inputs.cols
@@ -109,33 +107,59 @@ class StartOfMonth(ValueMethod[ir.DateValue, ir.DateValue]):
     def apply(self, value: ir.DateValue):
         return value @ it.defer(ir.DateValue).truncate("M")
 ```
+### 3. Generate IbisSchema classes for Expression classes
 
-> **Tip:** `IbisSchema` classes for your `Expression` outputs can be generated automatically using
-`ibis_typing.schema_writer`. The code is backend-agnostic — schemas are derived from abstract Ibis table schemas, so no
-> live backend is required.
+Generate `IbisSchema` classes for the output of `Expression` classes, and write them to `.py` files:
 
-### 3. Evaluate against a backend
+```shell
+python3 -m ibis_typing.schemagen \
+  my_module.expressions_pkg \
+  --schema-package my_app.generated.schemas \
+  --schema-suffix Schema \
+  --write
+```
+
+Resulting files will contain `IbisSchema` classes like this:
 
 ```python
-from datetime import date
+# my_app.generated.schemas.monthly_amounts_schema
+from attrs import frozen
+from ibis_typing.ibis_types import *
 
-from ibis_typing import IbisConnection, evaluator
-from ibis_typing.table_store import ParquetTableStore
+@frozen
+class MonthlyAmountsSchema(IbisSchema):
+  month: Date = None
+  amount: Float64 = None
+```
 
-conn = IbisConnection()  # defaults to in-memory DuckDB
-transactions = Transaction.of_rows(  # give test data via IbisSchema rows.
-    [Transaction(date=date(2024, 1, 15), amount=100.0, category="A")]
-)
-monthly_amounts = evaluator.from_expression(MonthlyAmounts, transactions)
-results: list[MonthlyAmounts] = list(conn.fetch_table(monthly_amounts))
+Update your `Expression` classes to use the generated `IbisSchema` for their output schema:
 
-# Write and read parquet files locally, stored by schema name.
-from pathlib import Path
+```python
+from my_app.generated import schemas
 
-store = ParquetTableStore(Path("/tmp/table_store"))
-store.write_table(transactions)
-table = store(Transaction)
-rows: list[Transaction] = list(conn.fetch_table(table))
+@frozen
+class MonthlyAmounts(schemas.MonthlyAmountsSchema, Expression):
+    ...
+```
+
+> **Tip:** Create a regression test that checks for unexpected schema changes, and update expected schemas when intentional changes are made:
+
+```python
+# my_app.tests.test_generate_schemas
+def test_generate_ibis_expression_schema_packages(update_expected):
+  expr_schema_pkgs = {
+    samples: sample_schemas,
+  }
+
+  expr_to_schema_package = {
+    expr: schema_pkg
+    for expr_pkg, schema_pkg in expr_schema_pkgs.items()
+    for expr in schema_writer.list_expressions_in_package(expr_pkg)
+  }
+
+  schema_writer.generate_schemas_with_diff_check(
+    expr_to_schema_package, update_expected
+  )
 ```
 
 ### 4. Test with Hypothesis
@@ -161,6 +185,30 @@ def test_monthly_amounts(evaluate_table, transactions):
     actual, expected = evaluate_table(MonthlyAmounts, [*transactions, *monthly_amounts])
 
     assert actual == expected
+```
+
+### 5. Evaluate against a backend
+
+```python
+from datetime import date
+
+from ibis_typing import IbisConnection, evaluator
+from ibis_typing.table_store import ParquetTableStore
+
+conn = IbisConnection()  # defaults to in-memory DuckDB
+transactions = Transaction.of_rows(  # give test data via IbisSchema rows.
+    [Transaction(date=date(2024, 1, 15), amount=100.0, category="A")]
+)
+monthly_amounts = evaluator.from_expression(MonthlyAmounts, transactions)
+results: list[MonthlyAmounts] = list(conn.fetch_table(monthly_amounts))
+
+# Write and read parquet files locally, stored by schema name.
+from pathlib import Path
+
+store = ParquetTableStore(Path("/tmp/table_store"))
+store.write_table(transactions)
+table = store(Transaction)
+rows: list[Transaction] = list(conn.fetch_table(table))
 ```
 
 ## Core concepts

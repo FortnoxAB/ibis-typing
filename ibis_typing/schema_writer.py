@@ -27,16 +27,12 @@ def generate_schemas_with_diff_check(
     name_provider: NameProvider = SuffixNameProvider(),
 ) -> None:
     """Write schemas or check that they are unchanged."""
-    prior = {
-        as_module_path(name, schema_package): content
-        for schema_package in set(expr_to_schema_package.values())
-        for name, content in read_package_modules(schema_package).items()
-    }
+    current = read_schemas(expr_to_schema_package)
 
     def iter_schemas():
         for path, content in generate_schemas(expr_to_schema_package, name_provider):
             yield path, content
-            if content == prior.get(path):
+            if content == (prior := current.get(path)):
                 continue
 
             if update_expected:
@@ -45,7 +41,15 @@ def generate_schemas_with_diff_check(
                 assert content == prior, f"Schema differ from prior: {path.name}"
 
     new = dict(iter_schemas())
-    assert set(new) == set(prior), "Schema set differ from prior"
+    assert set(new) == set(current), "Schema set differ from prior"
+
+
+def read_schemas(expr_to_schema_package: ExprToSchemaPackage) -> dict[Path, str]:
+    return {
+        as_module_path(name, schema_package): content
+        for schema_package in set(expr_to_schema_package.values())
+        for name, content in read_package_modules(schema_package).items()
+    }
 
 
 def generate_schemas(
