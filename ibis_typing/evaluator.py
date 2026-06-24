@@ -28,7 +28,7 @@ from . import (
     table_provider,
     this,
 )
-from .checksum_buckets import ChecksumBucketsIncrementTableExpression
+from .checksum_buckets import AsIncrementedBuckets
 from .ibis_pyarrow import EvaluateExpr
 from .ibis_time import TimestampNow
 from .ibis_utils import Aggregate
@@ -210,12 +210,10 @@ class ChecksumBucketsIncrementTableProvider(TableProvider):
         if not issubclass(schema, ChecksumBuckets):
             return None
 
-        increment_expr = ChecksumBucketsIncrementTableExpression(schema, self.expr)
-        increment_schema = increment_expr.as_expression_schema()
-
         prior_provider = FilteredTableProvider(
             self.prior_providers, include=[self.expr]
         )
         return from_expression(
-            increment_schema, table_providers=(prior_provider, *self.table_providers)
+            schema @ AsIncrementedBuckets(self.expr),
+            table_providers=(prior_provider, *self.table_providers),
         )

@@ -8,7 +8,7 @@ from collections.abc import Sequence
 from attrs import frozen
 from ibis import Table, Value
 
-from .expression import GenericExpression, SingleInputTableExpression
+from .expression import GenericExpression, SingleInputTableExpression, TableExpression
 from .extension_method import ExtensionMethod
 from .ibis_adapter import IbisSchema, IbisTable
 
@@ -65,3 +65,15 @@ class ArgsMethod[T: Value](SelfMethod[T], abc.ABC):
 
     def __init__(self, *args: T):
         self.__attrs_init__(args)  # type: ignore
+
+
+class ExpressionMethod[S: IbisSchema, E: GenericExpression](
+    ExtensionMethod[type[S], type[E]], abc.ABC
+):
+    """Extension method for chaining Expression class transforms."""
+
+    @abc.abstractmethod
+    def apply(self, schema: type[S]) -> TableExpression: ...
+
+    def __rmatmul__(self, other: type[S]) -> type[E]:
+        return self.apply(other).as_expression_schema()

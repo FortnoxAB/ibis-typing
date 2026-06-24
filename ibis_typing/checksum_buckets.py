@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import abc
 import functools
 import operator
 from collections.abc import Sequence
@@ -15,12 +16,15 @@ from .expression import (
 )
 from .ibis_adapter import IbisSchema, IbisTable, this
 from .ibis_deferred import deferred
+from .ibis_extension_method import ExpressionMethod
 from .ibis_joins import LeftJoin, OuterJoin
 from .ibis_ops import ColumnChecksum
 from .ibis_time import TimestampNow
 from .ibis_utils import Aggregate
 
 __all__ = [
+    "AsBucketedInputs",
+    "AsIncrementedBuckets",
     "BucketedInputsExpression",
     "BucketedInputsParams",
     "ChecksumBuckets",
@@ -47,20 +51,20 @@ class BucketedInputsParams(IncrementalParams):
     buckets: type[ChecksumBuckets]
 
 
-class IncrementalExpression(Expression):
+class IncrementalExpression(Expression, abc.ABC):
     """Expressions that can be updated incrementally."""
 
     incremental_params: ClassVar[IncrementalParams]
 
 
-class BucketedInputsExpression(IncrementalExpression):
+class BucketedInputsExpression(IncrementalExpression, abc.ABC):
     """Base class for implementing IncrementalExpressions.
 
     On incremental updates,
     the expression is only provided inputs from updated ChecksumBuckets.
     """
 
-    incremental_params: ClassVar[BucketedInputsParams]  # constant
+    incremental_params: ClassVar[BucketedInputsParams]
 
     @classmethod
     def get_parameter_schema_types(cls):
@@ -69,13 +73,11 @@ class BucketedInputsExpression(IncrementalExpression):
         buckets = cls.incremental_params.buckets
         inputs = buckets.incremental_params.inputs
 
-        bucketed_inputs = BucketedInputsTableExpression(buckets).as_expression_schema()
-
         if inputs not in params.values():
             raise TypeError(f"{cls.__name__} lacks {ChecksumBuckets.__name__} input.")
 
         return {
-            name: bucketed_inputs if issubclass(schema, inputs) else schema
+            name: buckets @ AsBucketedInputs() if issubclass(schema, inputs) else schema
             for name, schema in params.items()
         }
 
@@ -142,6 +144,20 @@ class ChecksumBuckets(IncrementalExpression, GenericExpression):
         )
 
         return cls.of(table)
+
+
+@frozen
+class AsIncrementedBuckets(ExpressionMethod):
+    target: type[IncrementalExpression]
+
+    def apply(self, schema):
+        return ChecksumBucketsIncrementTableExpression(schema, self.target)
+
+
+@frozen
+class AsBucketedInputs(ExpressionMethod):
+    def apply(self, schema):
+        return BucketedInputsTableExpression(schema)
 
 
 @frozen
