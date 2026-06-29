@@ -4,10 +4,12 @@ import abc
 
 import ibis
 from attrs import frozen
+from ibis.expr import datatypes as dt
 
 from . import ibis_types as it
 from .expression import GenericExpression, SingleInputTableExpression
 from .ibis_adapter import IbisSchema, IbisTable
+from .ibis_extension_method import ExpressionMethod
 
 _ = it  # Needed for doctests
 
@@ -80,3 +82,54 @@ def revert_all(table: IbisTable) -> IbisTable:
         table = constructor.revert_expression(table)
 
     return table
+
+
+@frozen
+class AsRevertible[E: ExpressionExport](ExpressionMethod):
+    """Wrap any non-parametric ExpressionExport as an ExpressionMethod.
+
+    For any parametric ExpressionExport, implement a parametric ExpressionMethod instead."""
+
+    revertible: type[E]
+
+    def apply(self, schema):
+        return self.revertible(schema, self)
+
+
+@frozen
+class ExpressionExport[R: ExpressionMethod](RevertibleTableExpression):
+    """Basic revertible transform, composable with `Schema @ AsRevertible(ExportExpression)`.
+
+    All parameters except for origin schema is kept in the ExpressionMethod.
+    The ExpressionMethod is then passed to the ExpressionExport.
+    """
+
+    method: R
+
+    def __call__(self, origin):
+        return origin.table
+
+    def revert_call(self, transformed):
+        return transformed.table
+
+    @property
+    def generated_class_name(self) -> str:
+        return self.origin.__name__
+
+
+class UUIDToStringExport(ExpressionExport):
+    """Cast UUID to strings for e.g. Apache Hive compatibility.
+
+    See
+    https://hive.apache.org/docs/latest/language/languagemanual-types/
+    """
+
+    def __call__(self, origin: IbisTable):
+        return origin.table.cast(dict.fromkeys(self._get_uuid_casts(), dt.string))
+
+    def revert_call(self, transformed: IbisTable):
+        return transformed.table.cast(dict.fromkeys(self._get_uuid_casts(), dt.uuid))
+
+    def _get_uuid_casts(self):
+        schema = ibis.schema(self.origin.table_schema)
+        return [column for column, type_ in schema.items() if type_ == dt.uuid]

@@ -14,7 +14,7 @@ from .ibis_adapter import IbisSchema, IbisTable
 
 
 class TableMethod(ExtensionMethod[Table, Table], abc.ABC):
-    """Apply operation to Table on left-hand side of this operator."""
+    """Table @ TableMethod() -> Table."""
 
     @abc.abstractmethod
     def apply(self, table: Table) -> Table: ...
@@ -32,6 +32,8 @@ class TableMethod(ExtensionMethod[Table, Table], abc.ABC):
 
 @frozen
 class TableMethodExpression(SingleInputTableExpression):
+    """Upgrades a TableMethod to a GenericExpression schema."""
+
     method: TableMethod
     preserves_schema: bool = False
 
@@ -46,7 +48,7 @@ class TableMethodExpression(SingleInputTableExpression):
 
 
 class ValueMethod[T: Value, R: Value](ExtensionMethod[T, R], abc.ABC):
-    """Apply operation to Value on left-hand side of this operator."""
+    """Value @ ValueMethod() -> Value."""
 
     @abc.abstractmethod
     def apply(self, value: T) -> R: ...
@@ -56,21 +58,23 @@ class ValueMethod[T: Value, R: Value](ExtensionMethod[T, R], abc.ABC):
 
 
 class SelfMethod[T: Value](ValueMethod[T, T], abc.ABC):
-    pass
+    """T @ SelfMethod() -> T."""
 
 
 @frozen(init=False)
-class ArgsMethod[T: Value](SelfMethod[T], abc.ABC):
-    args: Sequence[T]
+class ArgsMethod[V: Value](SelfMethod[V], abc.ABC):
+    """V @ Args(*values) -> V."""
 
-    def __init__(self, *args: T):
+    args: Sequence[V]
+
+    def __init__(self, *args: V):
         self.__attrs_init__(args)  # type: ignore
 
 
 class ExpressionMethod[S: IbisSchema, E: GenericExpression](
     ExtensionMethod[type[S], type[E]], abc.ABC
 ):
-    """Extension method for chaining Expression class transforms."""
+    """type[IbisSchema] @ ExpressionMethod() -> type[GenericExpression]."""
 
     @abc.abstractmethod
     def apply(self, schema: type[S]) -> TableExpression: ...
