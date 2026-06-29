@@ -18,7 +18,7 @@ from .dbt_model import DbtModel, GeneralConfig, PlainStrEnum
 
 
 @frozen(kw_only=True)
-class DbtSnapshot[E: IbisSchema](DbtModel):
+class DbtSnapshot[E: DbtSnapshotAbstract](DbtModel):
     """Integration mark-up for DBT snapshot function."""
 
     expr: type[E]

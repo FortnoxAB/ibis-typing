@@ -55,7 +55,7 @@ def dbt_model_to_dbt_sql(
 def dbt_snapshot_to_dbt_sql(
     snapshot: DbtSnapshot, dialect: str, *, ref_provider: DbtRefTableProvider
 ) -> str:
-    exported = snapshot.expr @ AsRevertible(ExpressionExport)
+    exported = snapshot.expr.origin @ AsRevertible(ExpressionExport)
     snapshot_table = dbt_ibis_constructor.construct_dbt_model(exported, ref_provider)
 
     table_sql = snapshot_table.table.to_sql(dialect)

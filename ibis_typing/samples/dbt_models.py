@@ -10,7 +10,10 @@ from ibis_typing.dbt import (
     dbt_model_resolver,
 )
 from ibis_typing.dbt.dbt_model import IncrementalStrategy, Materialized
-from ibis_typing.dbt.dbt_snapshot import SnapshotStrategy
+from ibis_typing.dbt.dbt_snapshot import (
+    DbtSnapshotAbstract,
+    SnapshotStrategy,
+)
 from ibis_typing.ibis_time import TimestampNow
 from ibis_typing.samples.sample_incremental_calendar import Calendar, CalendarWidth
 from ibis_typing.samples.sample_transforms import CircleParameters
@@ -28,7 +31,7 @@ def get_dbt_model_lookup() -> Mapping[type[Expression], DbtModel]:
             config=ModelConfig(
                 materialized=Materialized.table,
             ).with_namespace(*my_namespace),
-        )
+        ),
     }
     incremental_models = [
         DbtModel(
@@ -42,14 +45,7 @@ def get_dbt_model_lookup() -> Mapping[type[Expression], DbtModel]:
         for expr in resolver.incremental_models
     ]
     snapshots = [
-        DbtSnapshot(
-            expr=CalendarWidth,
-            config=SnapshotConfig(
-                strategy=SnapshotStrategy.timestamp,
-                unique_key=CalendarWidth.incremental_params.group_by,
-                updated_at=CalendarWidth.incremental_params.updated_at_col,
-            ).with_namespace(*my_namespace),
-        )
+        DbtSnapshot(expr=expr, config=expr.config) for expr in resolver.snapshots
     ]
     all_models = (*models, *incremental_models, *snapshots)
 
@@ -67,3 +63,12 @@ def as_db_schema(schema: type[IbisSchema]) -> type[IbisDbSchema]:
         "table_namespace": my_namespace,
     }
     return type(schema.__name__, (IbisDbSchema, schema), kwargs)
+
+
+class CalendarWidthSnapshot(DbtSnapshotAbstract):
+    origin = CalendarWidth
+    config = SnapshotConfig(
+        strategy=SnapshotStrategy.timestamp,
+        unique_key=CalendarWidth.incremental_params.group_by,
+        updated_at=CalendarWidth.incremental_params.updated_at_col,
+    ).with_namespace(*my_namespace)
