@@ -1,4 +1,4 @@
-# `ibis_typing.dbt` — dbt Integration
+# `ibis_typing.dbt` — DBT Integration
 
 Bridges typed `ibis_typing` [Expression](../expression.py) classes with
 [DBT](https://docs.getdbt.com/) by compiling them to DBT SQL (Jinja templates).
@@ -52,7 +52,7 @@ def get_dbt_model_lookup() -> Mapping[type[Expression], DbtModel]:
     resolver = dbt_model_resolver.DbtModelResolver(samples)
 
     models = {
-        # Provide timestamp as a table so every dbt run uses a fixed timestamp.
+        # Provide timestamp as a table so every DBT run uses a fixed timestamp.
         DbtModel(
             TimestampNow,
             config=ModelConfig(
@@ -100,7 +100,7 @@ def as_db_schema(schema: type[IbisSchema]) -> type[IbisDbSchema]:
 
 ---
 
-## Compiling to dbt SQL
+## Compiling to DBT SQL
 
 Use `DbtRefTableProvider` to wire the model and source lookups together, then
 call `dbt_model_to_dbt_sql` for each model.
@@ -135,5 +135,7 @@ The compiler automatically:
 
 ## Auto-Discovery with `DbtModelResolver`
 
-`DbtModelResolver` scans a Python package and returns all `Expression`
-subclasses grouped by category:
+`DbtModelResolver` scans a Python package
+and returns all `Expression` subclasses grouped by category
+like Incremental, Snapshot, and other models.
+Use it to hook your ibis Expression transform into the DBT toolchain.

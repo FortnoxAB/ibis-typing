@@ -32,6 +32,12 @@ analysis, and property-based testing.
 BigQuery, and more. **ibis-typing** layers a type-safe schema system on top of it, so your transforms carry type
 information end-to-end.
 
+[DBT](https://docs.getdbt.com/) is a popular SQL transformation framework. [**ibis-typing.dbt
+**](ibis_typing/dbt/README.md) can compile typed Ibis Expressions
+to DBT SQL for execution in your warehouse,
+combining the ubiquity of DBT
+with the expressiveness and benefits of a high-level typed DSL.
+
 ## Installation
 
 ```bash
