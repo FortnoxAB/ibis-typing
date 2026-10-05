@@ -16,7 +16,7 @@ uv sync --all-extras
 uv run python -m ibis_typing.type_patch
 ```
 
-The last command patches your installed `ibis` package with typed overloads. It needs to be re-run whenever `ibis` is upgraded.
+The last command patches your installed `ibis` package with typed overloads. It needs to be re-run whenever `ibis` is upgraded. It is set to run as part of `make deps` and `make`
 
 ## Running tests
 
