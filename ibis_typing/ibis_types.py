@@ -27,6 +27,10 @@ __all__ = [
     "Int16",
     "Int32",
     "Int64",
+    "UInt8",
+    "UInt16",
+    "UInt32",
+    "UInt64",
     "Float32",
     "Float64",
     "Boolean",
@@ -54,11 +58,15 @@ type Int8 = int | IntegerType | None
 type Int16 = int | IntegerType | None
 type Int32 = int | IntegerType | None
 type Int64 = int | IntegerType | None
+type UInt8 = int | IntegerType | None
+type UInt16 = int | IntegerType | None
+type UInt32 = int | IntegerType | None
+type UInt64 = int | IntegerType | None
 type Float32 = float | FloatingType | None
 type Float64 = float | FloatingType | None
 # Primitive types
 type Boolean = bool | BooleanType | None
-type Integer = Int8 | Int16 | Int32 | Int64
+type Integer = Int8 | Int16 | Int32 | Int64 | UInt8 | UInt16 | UInt32 | UInt64
 type Floating = Float32 | Float64
 type String = str | StringType | None
 type Binary = bytes | BinaryType | None
@@ -151,6 +159,10 @@ def to_ibis_core_type(ibis_type: AnyType) -> core.DataType:
         Int16: core.int16,
         Int32: core.int32,
         Int64: core.int64,
+        UInt8: core.uint8,
+        UInt16: core.uint16,
+        UInt32: core.uint32,
+        UInt64: core.uint64,
         Float32: core.float32,
         Float64: core.float64,
         # Primitive types
