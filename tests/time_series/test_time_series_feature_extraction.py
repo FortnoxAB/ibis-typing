@@ -210,7 +210,9 @@ def test_each_month_gets_the_features_of_itself_and_the_previous_month(
         yield Balance(tenant=123, month=APRIL, monetary_amount=15.0, currency="SEK")
 
         # Expected
-        yield CashFeatures(tenant=123, month=JANUARY, monetary_amount=10.0, currency="SEK")
+        yield CashFeatures(
+            tenant=123, month=JANUARY, monetary_amount=10.0, currency="SEK"
+        )
         yield CashFeatures(
             tenant=123,
             month=FEBRUARY,
