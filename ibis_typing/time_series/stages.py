@@ -1,7 +1,8 @@
 """Query stages of `TimeSeriesFeatureExtraction`.
 
-`prepare` numbers the rows of each series by `order_by` as `POSITION`; every later
-stage orders by `POSITION`.
+`prepare` numbers the rows of each series by `order_by` as `POSITION` and casts
+each value column to `float64` as `value_column(column)`; every later stage orders
+by `POSITION` and reads the values from `value_column(column)`.
 """
 
 from __future__ import annotations
@@ -15,7 +16,6 @@ from ibis import Table, ir
 
 from .. import ibis_ops
 from ..ibis_api import IfElse
-from ..ibis_joins import InnerJoin, LeftJoin
 from ..ibis_utils import Aggregate
 from .features import PointFeature, Points, SpectralFeature, Spectrum, TimeSeriesFeature
 
@@ -32,6 +32,7 @@ __all__ = [
     "prepare",
     "previous_values_column",
     "spectral_features",
+    "value_column",
     "window_features",
 ]
 
@@ -45,9 +46,20 @@ WINDOW_END = "__ts_window_end"
 POSITION_IN_WINDOW = "__ts_position_in_window"
 FREQUENCY_BIN = "__ts_frequency_bin"
 FREQUENCY = "__ts_frequency"
+# `POSITION` of the newest row of a series.
+_LAST_POSITION = "__ts_last_position"
+# Positions from a point to the end of a window containing it.
+_OFFSET = "__ts_offset"
 
-# Below this magnitude relative to the window's scale, a detrended window is zero.
-ZERO_TOLERANCE = 1e-9
+# Below this magnitude relative to the window's scale, a detrended window is zero:
+# about 1e4 times float64 rounding (~2.2e-16), so a constant or linear window is
+# zero while a variation of 1e-9 of the level is not.
+ZERO_TOLERANCE = 1e-12
+
+
+def value_column(column: str) -> str:
+    """Helper column with the values of `column` as `float64`."""
+    return f"__ts_value__{column}"
 
 
 def previous_values_column(column: str) -> str:
@@ -79,14 +91,26 @@ def prepare(
     columns: Sequence[str],
     uses_lag: bool,
 ) -> Table:
-    """Add each row's `POSITION` in its series and, if `uses_lag`, previous values."""
+    """Add `POSITION`, the `float64` values and, if `uses_lag`, previous values.
+
+    Casting once keeps every later stage, e.g. a difference of `uint8` values,
+    from overflowing.
+    """
     series = ibis.window(group_by=list(keys), order_by=table[order_by])
-    previous_values = {
-        previous_values_column(column): _floating(table, column).lag().over(series)
-        for column in columns
-        if uses_lag
-    }
-    return table.mutate(**{POSITION: ibis.row_number().over(series)}, **previous_values)
+    prepared = table.mutate(
+        **{POSITION: ibis.row_number().over(series)},
+        **{value_column(column): table[column].cast("float64") for column in columns},
+    )
+    if not uses_lag:
+        return prepared
+    return prepared.mutate(
+        **{
+            previous_values_column(column): _floating(prepared, value_column(column))
+            .lag()
+            .over(series)
+            for column in columns
+        }
+    )
 
 
 def window_features(  # noqa: PLR0913
@@ -116,7 +140,7 @@ def window_features(  # noqa: PLR0913
     )
 
     def value(column: str, feature: PointFeature) -> ir.Value:
-        values = _floating(table, column)
+        values = _floating(table, value_column(column))
         if feature.uses_lag:
             points = Points(
                 values=values,
@@ -145,30 +169,39 @@ def expand(
     window_size: int,
     uses_lag: bool,
 ) -> Table:
-    """One row per point of each complete window, ending at `WINDOW_END`."""
-    position = _integer(table, POSITION)
-    window_ends = table.filter(position >= ibis.literal(window_size - 1)).select(
-        *keys, **{WINDOW_END: position}
-    )
-    series_points = table.select(*keys, POSITION, *columns)
-    point_position = _integer(series_points, POSITION)
-    window_end = _integer(window_ends, WINDOW_END)
-    joined = window_ends.join(
-        series_points,
-        [
-            *keys,
-            point_position > window_end - window_size,
-            point_position <= window_end,
-        ],
-    )
-    position_in_window = (
-        _integer(joined, POSITION) - _integer(joined, WINDOW_END) + (window_size - 1)
-    )
-    expanded = joined.select(
+    """One row per point of each complete window, ending at `WINDOW_END`.
+
+    Each point is copied to the windows ending 0 .. `window_size - 1` positions
+    after it, so the cost is linear in the series length and needs no join.
+    """
+    values = [value_column(column) for column in columns]
+    # Ordered: DuckDB rewrites an unordered window aggregate into a self join,
+    # which fails to bind below the spectral window functions.
+    series = ibis.window(group_by=list(keys), order_by=_integer(table, POSITION))
+    points = table.select(
         *keys,
-        WINDOW_END,
-        **{POSITION_IN_WINDOW: position_in_window},
-        **{column: _floating(joined, column) for column in columns},
+        POSITION,
+        *values,
+        **{_LAST_POSITION: _integer(table, POSITION).max().over(series)},
+    )
+    offsets = ibis_ops.literal_table(
+        f"__ts_offsets_{window_size}",
+        [(offset,) for offset in range(window_size)],
+        ibis.schema({_OFFSET: "int64"}),
+    )
+    copies = points.cross_join(offsets)
+    offset = _integer(copies, _OFFSET)
+    window_end = _integer(copies, POSITION) + offset
+    in_complete_window = copies.filter(
+        window_end >= ibis.literal(window_size - 1),
+        window_end <= _integer(copies, _LAST_POSITION),
+    )
+    offset = _integer(in_complete_window, _OFFSET)
+    expanded = in_complete_window.select(
+        *keys,
+        **{WINDOW_END: _integer(in_complete_window, POSITION) + offset},
+        **{value: in_complete_window[value] for value in values},
+        **{POSITION_IN_WINDOW: ibis.literal(window_size - 1) - offset},
     )
     if not uses_lag:
         return expanded
@@ -177,7 +210,7 @@ def expand(
     )
     return expanded.mutate(
         **{
-            previous_values_column(column): _floating(expanded, column)
+            previous_values_column(column): _floating(expanded, value_column(column))
             .lag()
             .over(window)
             for column in columns
@@ -203,7 +236,7 @@ def expanded_point_features(  # noqa: PLR0913
             else None
         )
         return Points(
-            values=_floating(expanded, column),
+            values=_floating(expanded, value_column(column)),
             window_size=window_size,
             feature=feature,
             previous_values_column=previous_values,
@@ -227,11 +260,6 @@ def _window_statistic(statistic: str, column: str) -> str:
     return f"__ts_{statistic}__{column}"
 
 
-def _non_null_count(column: str) -> str:
-    """Helper column with the number of non-null values of `column` per window."""
-    return f"__ts_non_null_count__{column}"
-
-
 def spectral_features(  # noqa: PLR0913
     expanded: Table,
     *,
@@ -246,69 +274,48 @@ def spectral_features(  # noqa: PLR0913
     assert window_size >= 3
     window_keys = [*keys, WINDOW_END]
 
-    def mean(column: str) -> str:
-        return _window_statistic("mean", column)
-
-    def slope(column: str) -> str:
-        return _window_statistic("slope", column)
-
-    def scale(column: str) -> str:
-        return _window_statistic("scale", column)
-
-    def real(column: str) -> str:
-        return _window_statistic("real", column)
-
-    def imaginary(column: str) -> str:
-        return _window_statistic("imaginary", column)
-
-    def magnitude(column: str) -> str:
-        return _window_statistic("magnitude", column)
-
-    def cumulative_magnitude(column: str) -> str:
-        return _window_statistic("cumulative_magnitude", column)
-
-    def total_magnitude(column: str) -> str:
-        return _window_statistic("total_magnitude", column)
-
     # Least-squares line per window:
     # value ≈ mean + slope · (position_in_window - mean_position).
     mean_position = (window_size - 1) / 2
     position_variance = (window_size * window_size - 1) / 12
+    # Window functions rather than an aggregate joined back, so the query
+    # expands each window once.
+    whole_window = ibis.window(group_by=window_keys)
     position_in_window = _integer(expanded, POSITION_IN_WINDOW)
-    window_statistics = expanded @ Aggregate(
-        by=window_keys,
-        expr={
-            **{
-                _non_null_count(column): _floating(expanded, column).count()
-                for column in columns
-            },
-            **{
-                scale(column): _floating(expanded, column).abs().max()
-                for column in columns
-            },
-            **{mean(column): _floating(expanded, column).mean() for column in columns},
-            **{
-                slope(column): position_in_window.cov(
-                    _floating(expanded, column), how="pop"
-                )
-                / position_variance
-                for column in columns
-            },
-        },
-    )
-    joined = expanded @ InnerJoin(window_statistics, keys=window_keys)
-    centred_position = _integer(joined, POSITION_IN_WINDOW).cast(float) - mean_position
-    residuals = joined.select(
-        *window_keys,
-        POSITION_IN_WINDOW,
+    centred_position = position_in_window.cast(float) - mean_position
+
+    def values(column: str) -> ir.FloatingColumn:
+        return _floating(expanded, value_column(column))
+
+    def residuals_of(column: str) -> ir.Value:
+        mean = values(column).mean().over(whole_window)
+        slope = (
+            position_in_window.cov(values(column), how="pop").over(whole_window)
+            / position_variance
+        )
+        return values(column) - (mean + slope * centred_position)
+
+    # Per-window statistics the validity check reads after the spectrum.
+    carried = {
         **{
-            column: _floating(joined, column)
-            - (
-                _floating(joined, mean(column))
-                + _floating(joined, slope(column)) * centred_position
-            )
+            _window_statistic("non_null_count", column): values(column)
+            .count()
+            .over(whole_window)
             for column in columns
         },
+        **{
+            _window_statistic("scale", column): values(column)
+            .abs()
+            .max()
+            .over(whole_window)
+            for column in columns
+        },
+    }
+    residuals = expanded.select(
+        *window_keys,
+        POSITION_IN_WINDOW,
+        **carried,
+        **{value_column(column): residuals_of(column) for column in columns},
     )
 
     # Real DFT of the residuals per frequency bin 0 .. window_size // 2.
@@ -323,14 +330,18 @@ def spectral_features(  # noqa: PLR0913
         _integer(bin_rows, FREQUENCY_BIN) * _integer(bin_rows, POSITION_IN_WINDOW)
     ).cast(float) * angle_factor
     spectrum = bin_rows @ Aggregate(
-        by=[*window_keys, FREQUENCY_BIN],
+        by=[*window_keys, FREQUENCY_BIN, *carried],
         expr={
             **{
-                real(column): (_floating(bin_rows, column) * angle.cos()).sum()
+                _window_statistic("real", column): (
+                    _floating(bin_rows, value_column(column)) * angle.cos()
+                ).sum()
                 for column in columns
             },
             **{
-                imaginary(column): (_floating(bin_rows, column) * angle.sin()).sum()
+                _window_statistic("imaginary", column): (
+                    _floating(bin_rows, value_column(column)) * angle.sin()
+                ).sum()
                 for column in columns
             },
         },
@@ -342,9 +353,9 @@ def spectral_features(  # noqa: PLR0913
             / window_size
         },
         **{
-            magnitude(column): (
-                _floating(spectrum, real(column)) ** 2
-                + _floating(spectrum, imaginary(column)) ** 2
+            _window_statistic("magnitude", column): (
+                _floating(spectrum, _window_statistic("real", column)) ** 2
+                + _floating(spectrum, _window_statistic("imaginary", column)) ** 2
             ).sqrt()
             for column in columns
         },
@@ -352,16 +363,19 @@ def spectral_features(  # noqa: PLR0913
     cumulative = ibis.cumulative_window(
         group_by=window_keys, order_by=_integer(spectrum, FREQUENCY_BIN)
     )
-    whole_window = ibis.window(group_by=window_keys)
     spectrum = spectrum.mutate(
         **{
-            cumulative_magnitude(column): _floating(spectrum, magnitude(column))
+            _window_statistic("cumulative_magnitude", column): _floating(
+                spectrum, _window_statistic("magnitude", column)
+            )
             .sum()
             .over(cumulative)
             for column in columns
         },
         **{
-            total_magnitude(column): _floating(spectrum, magnitude(column))
+            _window_statistic("total_magnitude", column): _floating(
+                spectrum, _window_statistic("magnitude", column)
+            )
             .sum()
             .over(whole_window)
             for column in columns
@@ -372,54 +386,53 @@ def spectral_features(  # noqa: PLR0913
         return Spectrum(
             frequency_bin=_integer(spectrum, FREQUENCY_BIN),
             frequency=_floating(spectrum, FREQUENCY),
-            magnitude=_floating(spectrum, magnitude(column)),
-            cumulative_magnitude=_floating(spectrum, cumulative_magnitude(column)),
-            total_magnitude=_floating(spectrum, total_magnitude(column)),
+            magnitude=_floating(spectrum, _window_statistic("magnitude", column)),
+            cumulative_magnitude=_floating(
+                spectrum, _window_statistic("cumulative_magnitude", column)
+            ),
+            total_magnitude=_floating(
+                spectrum, _window_statistic("total_magnitude", column)
+            ),
             window_size=window_size,
         )
 
-    output_names = {
-        (column, feature): naming(column, feature, window_size)
-        for column in columns
-        for feature in features
-    }
-    reduced = spectrum @ Aggregate(
-        by=window_keys,
-        expr={
-            **{
-                name: feature.reduce(view(column))
-                for (column, feature), name in output_names.items()
-            },
-            **{
-                total_magnitude(column): _floating(
-                    spectrum, total_magnitude(column)
-                ).max()
-                for column in columns
-            },
-        },
-    )
-    result = reduced @ InnerJoin(window_statistics, keys=window_keys)
-
-    # Null for windows with a null value or a zero residual.
     def valid(column: str) -> ir.BooleanValue:
-        not_zero = _floating(result, total_magnitude(column)) > _floating(
-            result, scale(column)
-        ) * (ZERO_TOLERANCE * window_size)
-        complete = _integer(result, _non_null_count(column)) == ibis.literal(
-            window_size
+        """No null value, and more than rounding left after detrending."""
+        non_null_count = _integer(spectrum, _window_statistic("non_null_count", column))
+        scale = _floating(spectrum, _window_statistic("scale", column))
+        total_magnitude = _floating(
+            spectrum, _window_statistic("total_magnitude", column)
         )
+        complete = non_null_count.max() == ibis.literal(window_size)
+        not_zero = total_magnitude.max() > scale.max() * (ZERO_TOLERANCE * window_size)
         return complete & not_zero
 
-    return result.select(
-        *window_keys,
-        **{
-            name: _null_unless(valid(column), result[name])
-            for (column, _), name in output_names.items()
+    return spectrum @ Aggregate(
+        by=window_keys,
+        expr={
+            naming(column, feature, window_size): _null_unless(
+                valid(column), feature.reduce(view(column))
+            )
+            for column in columns
+            for feature in features
         },
     )
 
 
-def join_back(table: Table, result: Table, *, keys: Sequence[str]) -> Table:
-    """Left join `result` on each row's window end and add its new columns."""
-    window_results = result.rename({POSITION: WINDOW_END})
-    return table @ LeftJoin(window_results, keys=[*keys, POSITION])
+def join_back(table: Table, results: Sequence[Table], *, keys: Sequence[str]) -> Table:
+    """Left join each of `results` on each row's window end, in one flat join chain.
+
+    `LeftJoin` would wrap each join in a selection of every column so far. Here
+    the clashing key columns of each result get a reserved prefix instead.
+    """
+    joined = table
+    for index, result in enumerate(results):
+        joined = joined.left_join(
+            result,
+            [
+                *(table[key] == result[key] for key in keys),
+                _integer(table, POSITION) == _integer(result, WINDOW_END),
+            ],
+            rname=f"__ts_joined_{index}__{{name}}",
+        )
+    return joined

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from typing import TYPE_CHECKING
 
 from .features import PointFeature, SpectralFeature
@@ -17,13 +18,15 @@ __all__ = ["validate"]
 def validate(extraction: TimeSeriesFeatureExtraction, table: Table) -> None:
     """Raise if `extraction` cannot be applied to `table`, checking in this order."""
     _has_columns_features_and_windows(extraction)
+    _window_sizes_are_ints(extraction)
     _window_sizes_are_at_least_one(extraction)
-    _sampling_frequency_is_positive(extraction)
+    _sampling_frequency_is_positive_and_finite(extraction)
     _features_are_point_or_spectral(extraction)
     _columns_exist(extraction, table)
     _no_reserved_prefix(table)
     _columns_are_numeric(extraction, table)
     _no_key_is_a_value_column(extraction)
+    _order_by_is_not_a_key(extraction)
     output_names = _output_names(extraction)
     _output_names_are_unique(output_names)
     _output_names_are_new(output_names, table)
@@ -38,16 +41,29 @@ def _has_columns_features_and_windows(extraction: TimeSeriesFeatureExtraction) -
         raise ValueError("TimeSeriesFeatureExtraction needs at least one window.")
 
 
+def _window_sizes_are_ints(extraction: TimeSeriesFeatureExtraction) -> None:
+    invalid = [
+        size
+        for size in extraction.window_sizes
+        if isinstance(size, bool) or not isinstance(size, int)
+    ]
+    if invalid:
+        raise TypeError(f"Window sizes must be ints, got: {invalid}")
+
+
 def _window_sizes_are_at_least_one(extraction: TimeSeriesFeatureExtraction) -> None:
     invalid = [size for size in extraction.window_sizes if size < 1]
     if invalid:
         raise ValueError(f"Window sizes must be at least 1, got: {invalid}")
 
 
-def _sampling_frequency_is_positive(extraction: TimeSeriesFeatureExtraction) -> None:
-    if extraction.sampling_frequency <= 0:
+def _sampling_frequency_is_positive_and_finite(
+    extraction: TimeSeriesFeatureExtraction,
+) -> None:
+    frequency = extraction.sampling_frequency
+    if not math.isfinite(frequency) or frequency <= 0:
         raise ValueError(
-            f"sampling_frequency must be positive, got: {extraction.sampling_frequency}"
+            f"sampling_frequency must be positive and finite, got: {frequency}"
         )
 
 
@@ -89,6 +105,11 @@ def _no_key_is_a_value_column(extraction: TimeSeriesFeatureExtraction) -> None:
     overlap = [str(column) for column in extraction.columns if str(column) in keys]
     if overlap:
         raise ValueError(f"Columns cannot be both a key and a value column: {overlap}")
+
+
+def _order_by_is_not_a_key(extraction: TimeSeriesFeatureExtraction) -> None:
+    if str(extraction.order_by) in {str(key) for key in extraction.keys}:
+        raise ValueError(f"order_by cannot also be a key: {extraction.order_by}")
 
 
 def _output_names(extraction: TimeSeriesFeatureExtraction) -> list[str]:
