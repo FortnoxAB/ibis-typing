@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-07
+
+### Added
+
+- `ibis_typing.time_series` — `TimeSeriesFeatureExtraction`, a `TableMethod` that adds trailing-window features per row
+- `ibis_typing.time_series.features` — built-in features: `Sum`, `Mean`, `Min`, `Max`, `Count`, `NUnique`, `ApproxMedian`, `StandardDeviation`, `MeanAbsDiff`, `MedianFrequency`
+- `PointFeature` and `SpectralFeature` — base classes for custom features, reducing `Points` or `Spectrum`
+- `MedianFrequency` — computed on linearly detrended windows, so neither level nor trend dominates
+
 ## [1.0.0] - 2026-03-26
 
 Initial open-source release under the MIT license.
@@ -30,5 +39,6 @@ Initial open-source release under the MIT license.
 - DuckDB and Trino backend support
 - MIT license
 
-[Unreleased]: https://github.com/FortnoxAB/ibis-typing/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/FortnoxAB/ibis-typing/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/FortnoxAB/ibis-typing/compare/v1.1.0...v1.2.0
 [1.0.0]: https://github.com/FortnoxAB/ibis-typing/releases/tag/v1.0.0
