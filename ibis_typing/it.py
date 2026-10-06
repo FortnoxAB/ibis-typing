@@ -63,6 +63,10 @@ from .ibis_types import (
     Struct,
     Time,
     Timestamp,
+    UInt8,
+    UInt16,
+    UInt32,
+    UInt64,
 )
 from .ibis_utils import (
     Aggregate,
@@ -131,6 +135,10 @@ __all__ = [
     "Time",
     "Timestamp",
     "TimestampNow",
+    "UInt8",
+    "UInt16",
+    "UInt32",
+    "UInt64",
     "defer",
     "deferred",
     "this",

@@ -1,5 +1,7 @@
 """Custom Ibis operations provided by ibis-typing."""
 
+from __future__ import annotations
+
 from collections.abc import Iterable
 from typing import Any, Self
 
