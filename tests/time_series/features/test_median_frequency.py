@@ -3,14 +3,13 @@ from __future__ import annotations
 import math
 
 import pytest
-from hypothesis import assume, given
+from hypothesis import given
 
 from ibis_typing.time_series.features import MedianFrequency
 from tests.time_series.reference import (
     approx,
     each_window,
     finite_series,
-    is_near_median_frequency_tie,
     median_frequency,
     window_sizes,
 )
@@ -34,10 +33,18 @@ def wave(cycles: int, window_size: int) -> list[float]:
         ([value + 1_000 for value in wave(1, 8)], 8, [None] * 7 + [1 / 8]),
         # Equal bins resolve to the higher frequency.
         ([-2.0, -5.0, -4.0, 1.0, 0.0], 5, [None] * 4 + [0.4]),
+        # A small variation on a large level still has a frequency.
+        (
+            [10_000_000.0 + 0.01 * (position % 2) for position in range(4)],
+            4,
+            [None] * 3 + [0.5],
+        ),
         # Nothing is left after removing the trend line, so these are null.
         ([5.0] * 4, 3, [None] * 4),
         ([1.0, 2.0, 3.0, 4.0], 3, [None] * 4),
         ([0.0] * 4, 3, [None] * 4),
+        ([10_000_000.0] * 4, 3, [None] * 4),
+        ([1e6 + 2.0 * position for position in range(6)], 4, [None] * 6),
         # A window below three rows is null.
         ([1.0, 5.0, 2.0], 2, [None] * 3),
         # A window with a null is null.
@@ -62,7 +69,6 @@ def test_a_linear_trend_does_not_change_the_median_frequency(trailing, trend):
 
 @given(values=finite_series(), window_size=window_sizes(min_size=3))
 def test_median_frequency_matches_the_reference(trailing, values, window_size):
-    assume(not any(each_window(is_near_median_frequency_tie, values, window_size)))
     assert trailing(values, MedianFrequency(), window_size=window_size) == approx(
         each_window(median_frequency, values, window_size)
     )
