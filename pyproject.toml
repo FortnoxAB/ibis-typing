@@ -14,7 +14,7 @@ explicit = true
 [project]
 requires-python = ">=3.12"
 name = "ibis-typing"
-version = "1.1.0"
+version = "1.2.0"
 description = "A typed framework for writing Ibis expressions with full IDE and static-analysis support"
 readme = "README.md"
 license = "MIT"

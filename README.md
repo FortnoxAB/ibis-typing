@@ -296,6 +296,49 @@ table = (
 )
 ```
 
+## Time series features
+
+[**ibis_typing.time_series**](ibis_typing/time_series/README.md) adds trailing-window
+features, such as sums, standard deviations and the median frequency, to every row of a
+series. Each row keeps its columns and gets one new column per value column, feature and
+window size.
+
+```python
+from datetime import date
+
+from attrs import frozen
+
+from ibis_typing import IbisSchema, it
+from ibis_typing.time_series import TimeSeriesFeatureExtraction
+from ibis_typing.time_series.features import MeanAbsDiff, Sum
+
+
+@frozen
+class Balance(IbisSchema):
+    tenant: it.String = None
+    month: it.Date = None
+    cash: it.Float64 = None
+
+
+balances = Balance.of_rows(
+    [
+        Balance(tenant="a", month=date(2024, 1, 1), cash=10.0),
+        Balance(tenant="a", month=date(2024, 2, 1), cash=12.0),
+    ]
+)
+cols = Balance.cols
+
+table = balances.table @ TimeSeriesFeatureExtraction(
+    keys=[cols.tenant],
+    order_by=cols.month,
+    columns=[cols.cash],
+    features=[Sum(), MeanAbsDiff()],
+    windows=[2],
+    window_unit="months",
+)
+# Adds cash__sum_last_2_months and cash__mean_abs_diff_last_2_months
+```
+
 ## Pytest fixtures
 
 The following fixtures are auto-registered via the pytest plugin entry point (no `conftest.py` needed):
