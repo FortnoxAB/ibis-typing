@@ -333,7 +333,7 @@ table = balances.table @ TimeSeriesFeatureExtraction(
     order_by=cols.month,
     columns=[cols.cash],
     features=[Sum(), MeanAbsDiff()],
-    windows=2,
+    windows=[2],
     window_unit="months",
 )
 # Adds cash__sum_last_2_months and cash__mean_abs_diff_last_2_months

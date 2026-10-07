@@ -33,7 +33,7 @@ class TimeSeriesFeatureExtraction(TableMethod):
     order_by: it.NameOrType
     columns: Sequence[it.NameOrType]
     features: Sequence[TimeSeriesFeature]
-    windows: int | Sequence[int]
+    windows: Sequence[int]
     window_unit: str | None = None
     sampling_frequency: float = 1.0
 
@@ -70,7 +70,7 @@ class TimeSeriesFeatureExtraction(TableMethod):
         ...     order_by="month",
         ...     columns=["cash"],
         ...     features=[Sum()],
-        ...     windows=12,
+        ...     windows=[12],
         ...     window_unit="months",
         ... ).output_name("cash", Sum(), 12)
         'cash__sum_last_12_months'
@@ -78,10 +78,6 @@ class TimeSeriesFeatureExtraction(TableMethod):
         return self.rename_col(
             column, feature, window=window_size, window_unit=self.window_unit
         )
-
-    @property
-    def window_sizes(self) -> tuple[int, ...]:
-        return (self.windows,) if isinstance(self.windows, int) else tuple(self.windows)
 
     def apply(self, table: Table) -> Table:
         validate(self, table)
@@ -107,7 +103,7 @@ class TimeSeriesFeatureExtraction(TableMethod):
         )
         row_values: dict[str, ir.Value] = {}
         results: list[Table] = []
-        for window_size in self.window_sizes:
+        for window_size in self.windows:
             if windowed:
                 row_values |= stages.window_features(
                     prepared,
@@ -130,7 +126,7 @@ class TimeSeriesFeatureExtraction(TableMethod):
 
         output_names = [
             self.output_name(column, feature, window_size)
-            for window_size in self.window_sizes
+            for window_size in self.windows
             for features in (windowed, expanded_point, spectral)
             for column in columns
             for feature in features

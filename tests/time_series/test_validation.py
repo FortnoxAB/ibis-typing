@@ -16,7 +16,7 @@ from tests.time_series.series import extraction, table
         ({"columns": ()}, ValueError, "at least one column"),
         ({"windows": ()}, ValueError, "at least one window"),
         ({"windows": (3, 0)}, ValueError, "at least 1"),
-        ({"windows": True}, TypeError, "must be ints"),
+        ({"windows": (3, True)}, TypeError, "must be ints"),
         ({"windows": (3, 2.0)}, TypeError, "must be ints"),
         ({"sampling_frequency": 0.0}, ValueError, "positive and finite"),
         ({"sampling_frequency": math.nan}, ValueError, "positive and finite"),

@@ -33,7 +33,7 @@ class CashFeatures(Balance, Expression):
             order_by=cols.month,
             columns=[cols.monetary_amount],
             features=[Sum(), MeanAbsDiff()],
-            windows=2,
+            windows=[2],
             window_unit="months",
         )
         return cls.of(table)
@@ -110,7 +110,7 @@ class WholeUnitCashFeatures(WholeUnitBalance, Expression):
             order_by=cols.month,
             columns=[cols.cash],
             features=[MeanAbsDiff()],
-            windows=2,
+            windows=[2],
         )
         return cls.of(table)
 
@@ -165,7 +165,7 @@ class UnkeyedCashFeatures(Cash, Expression):
             order_by=cols.month,
             columns=[cols.cash],
             features=[Sum(), NUnique(), MedianFrequency()],
-            windows=3,
+            windows=[3],
             sampling_frequency=12.0,
         )
         return cls.of(table)

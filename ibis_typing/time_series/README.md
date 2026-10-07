@@ -12,7 +12,7 @@ Adds trailing-window features to every row of an `ibis.Table` with
   and `columns` take column names or `IbisSchema.cols` fields.
 - A **window** of size `n` is the `n` points of a series ending at, and including, a
   row. Rows with fewer than `n` points get null.
-- `windows` is one window size or several. Each size adds its own columns.
+- `windows` lists the window sizes. Each size adds its own columns.
 - Every row and input column is kept. Each value column in `columns` gets one new
   column per feature and window size, named
   `{column}__{feature.name}_last_{window_size}` or, with `window_unit`,
@@ -191,10 +191,6 @@ from ibis_typing.time_series.features import SpectralFeature, Spectrum
 
 @frozen
 class PeakMagnitude(SpectralFeature):
-    @property
-    def name(self) -> str:
-        return "peak_magnitude"
-
     def reduce(self, spectrum: Spectrum) -> ir.Value:
         return spectrum.magnitude.max()
 ```

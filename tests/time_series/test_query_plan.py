@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 import ibis
 import pytest
 
@@ -7,7 +9,7 @@ from ibis_typing.time_series.features import MeanAbsDiff, MedianFrequency, NUniq
 from tests.time_series.series import extraction, table
 
 
-def sql(*features, windows: int | tuple[int, ...] = 3) -> str:
+def sql(*features, windows: Sequence[int] = (3,)) -> str:
     extracted = table([1.0, 2.0, 4.0]) @ extraction(*features, windows=windows)
     return ibis.to_sql(extracted, dialect="duckdb").upper()
 

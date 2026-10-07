@@ -40,7 +40,7 @@ def extraction(
         "order_by": "time",
         "columns": ("value",),
         "features": features,
-        "windows": 2,
+        "windows": [2],
     }
     return TimeSeriesFeatureExtraction(**{**arguments, **overrides})
 

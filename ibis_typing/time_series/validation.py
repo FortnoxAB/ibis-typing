@@ -37,14 +37,14 @@ def _has_columns_features_and_windows(extraction: TimeSeriesFeatureExtraction) -
         raise ValueError("TimeSeriesFeatureExtraction needs at least one column.")
     if not extraction.features:
         raise ValueError("TimeSeriesFeatureExtraction needs at least one feature.")
-    if not extraction.window_sizes:
+    if not extraction.windows:
         raise ValueError("TimeSeriesFeatureExtraction needs at least one window.")
 
 
 def _window_sizes_are_ints(extraction: TimeSeriesFeatureExtraction) -> None:
     invalid = [
         size
-        for size in extraction.window_sizes
+        for size in extraction.windows
         if isinstance(size, bool) or not isinstance(size, int)
     ]
     if invalid:
@@ -52,7 +52,7 @@ def _window_sizes_are_ints(extraction: TimeSeriesFeatureExtraction) -> None:
 
 
 def _window_sizes_are_at_least_one(extraction: TimeSeriesFeatureExtraction) -> None:
-    invalid = [size for size in extraction.window_sizes if size < 1]
+    invalid = [size for size in extraction.windows if size < 1]
     if invalid:
         raise ValueError(f"Window sizes must be at least 1, got: {invalid}")
 
@@ -115,7 +115,7 @@ def _order_by_is_not_a_key(extraction: TimeSeriesFeatureExtraction) -> None:
 def _output_names(extraction: TimeSeriesFeatureExtraction) -> list[str]:
     return [
         extraction.output_name(column, feature, size)
-        for size in extraction.window_sizes
+        for size in extraction.windows
         for column in extraction.columns
         for feature in extraction.features
     ]

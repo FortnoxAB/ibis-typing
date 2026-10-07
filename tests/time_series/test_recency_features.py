@@ -18,10 +18,6 @@ class RecencyWeightedMean(PointFeature):
 
     windowable: ClassVar[bool] = False
 
-    @property
-    def name(self) -> str:
-        return "recency_weighted_mean"
-
     def reduce(self, points: Points) -> ir.Value:
         weight = points.position + 1
         return (points.values * weight).sum() / weight.sum()
@@ -34,10 +30,6 @@ class LatestStep(PointFeature):
     windowable: ClassVar[bool] = False
     uses_lag: ClassVar[bool] = True
 
-    @property
-    def name(self) -> str:
-        return "latest_step"
-
     def reduce(self, points: Points) -> ir.Value:
         step = points.values - points.previous_values
         return step.max(where=points.steps_from_newest == ibis.literal(0))
@@ -45,30 +37,18 @@ class LatestStep(PointFeature):
 
 @frozen
 class ReadsPositionWhileWindowable(PointFeature):
-    @property
-    def name(self) -> str:
-        return "reads_position"
-
     def reduce(self, points: Points) -> ir.Value:
         return points.position.max()
 
 
 @frozen
 class ReadsStepsFromNewestWhileWindowable(PointFeature):
-    @property
-    def name(self) -> str:
-        return "reads_steps_from_newest"
-
     def reduce(self, points: Points) -> ir.Value:
         return points.steps_from_newest.max()
 
 
 @frozen
 class ReadsPreviousValuesWithoutLag(PointFeature):
-    @property
-    def name(self) -> str:
-        return "reads_previous_values"
-
     def reduce(self, points: Points) -> ir.Value:
         return points.previous_values.max()
 

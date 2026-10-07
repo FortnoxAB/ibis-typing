@@ -28,7 +28,7 @@ def trailing(evaluate_expr: EvaluateExpr) -> Callable[..., list[Any]]:
         points = series(values)
         random.Random(0).shuffle(points)
         method = extraction(
-            feature, windows=window_size, sampling_frequency=sampling_frequency
+            feature, windows=[window_size], sampling_frequency=sampling_frequency
         )
         output = TimeSeriesFeatureExtraction.rename_col(
             "value", feature, window=window_size
