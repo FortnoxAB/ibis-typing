@@ -2,17 +2,11 @@
 
 from __future__ import annotations
 
-from .approx_median import ApproxMedian
 from .base import PointFeature, Points, SpectralFeature, Spectrum, TimeSeriesFeature
-from .count import Count
-from .max import Max
-from .mean import Mean
+from .basic_features import ApproxMedian, Count, Max, Mean, Min, StandardDeviation, Sum
 from .mean_abs_diff import MeanAbsDiff
 from .median_frequency import MedianFrequency
-from .min import Min
 from .nunique import NUnique
-from .standard_deviation import StandardDeviation
-from .sum import Sum
 
 __all__ = [
     "ApproxMedian",
