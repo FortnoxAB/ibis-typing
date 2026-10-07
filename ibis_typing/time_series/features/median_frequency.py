@@ -25,10 +25,6 @@ class MedianFrequency(SpectralFeature):
     `sampling_frequency / 3`.
     """
 
-    @property
-    def name(self) -> str:
-        return "median_frequency"
-
     def reduce(self, spectrum: Spectrum) -> ir.Value:
         threshold = spectrum.total_magnitude * (0.5 + TIE_TOLERANCE)
         return spectrum.frequency.min(where=spectrum.cumulative_magnitude > threshold)

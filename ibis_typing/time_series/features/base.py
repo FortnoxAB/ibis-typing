@@ -8,6 +8,8 @@ from typing import ClassVar
 from attrs import frozen
 from ibis import ir
 
+from ibis_typing.naming import snake_case
+
 __all__ = [
     "PointFeature",
     "Points",
@@ -21,9 +23,12 @@ class TimeSeriesFeature(abc.ABC):
     """A feature of one value column over one trailing window."""
 
     @property
-    @abc.abstractmethod
     def name(self) -> str:
-        """Output column suffix, e.g. `"sum"`. Include parameters if any."""
+        """Output column suffix, the snake_case class name, e.g. `"mean_abs_diff"`.
+
+        Override to change it, or to include parameters.
+        """
+        return snake_case(type(self).__name__)
 
 
 class PointFeature(TimeSeriesFeature):
@@ -37,7 +42,7 @@ class PointFeature(TimeSeriesFeature):
     to also read `position` and `steps_from_newest`; each window is then expanded
     into rows and grouped, which costs more.
 
-    To add a feature, subclass this with `@frozen`, define `name` and `reduce`.
+    To add a feature, subclass this with `@frozen` and define `reduce`.
     """
 
     uses_lag: ClassVar[bool] = False
@@ -56,7 +61,7 @@ class SpectralFeature(TimeSeriesFeature):
     dominates. Windows with a null value, fewer than 3 points or nothing left
     after detrending are null.
 
-    To add a feature, subclass this with `@frozen`, define `name` and `reduce`.
+    To add a feature, subclass this with `@frozen` and define `reduce`.
     """
 
     @abc.abstractmethod

@@ -22,9 +22,5 @@ class MeanAbsDiff(PointFeature):
 
     uses_lag: ClassVar[bool] = True
 
-    @property
-    def name(self) -> str:
-        return "mean_abs_diff"
-
     def reduce(self, points: Points) -> ir.Value:
         return (points.values - points.previous_values).abs().mean()

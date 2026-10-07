@@ -22,9 +22,5 @@ class NUnique(PointFeature):
 
     windowable: ClassVar[bool] = False
 
-    @property
-    def name(self) -> str:
-        return "nunique"
-
     def reduce(self, points: Points) -> ir.Value:
         return points.values.nunique()

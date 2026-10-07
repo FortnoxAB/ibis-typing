@@ -113,9 +113,10 @@ than 3 points or nothing left after detrending, and scales with `sampling_freque
 
 ## Adding a feature
 
-Subclass `PointFeature` or `SpectralFeature` with `@frozen`, and define the `name`
-property (the output column suffix) and `reduce`. `reduce` returns one ibis
-aggregate.
+Subclass `PointFeature` or `SpectralFeature` with `@frozen` and define `reduce`, which
+returns one ibis aggregate. The output column suffix, `name`, defaults to the
+snake_case class name (`MeanStep` → `mean_step`); override the `name` property to
+change it or to include parameters.
 
 ### Point features
 
@@ -144,10 +145,6 @@ from ibis_typing.time_series.features import PointFeature, Points
 
 @frozen
 class Range(PointFeature):
-    @property
-    def name(self) -> str:
-        return "range"
-
     def reduce(self, points: Points) -> ir.Value:
         return points.values.max() - points.values.min()
 
@@ -156,10 +153,6 @@ class Range(PointFeature):
 class MeanStep(PointFeature):
     uses_lag: ClassVar[bool] = True
 
-    @property
-    def name(self) -> str:
-        return "mean_step"
-
     def reduce(self, points: Points) -> ir.Value:
         return (points.values - points.previous_values).mean()
 
@@ -167,10 +160,6 @@ class MeanStep(PointFeature):
 @frozen
 class RecencyWeightedMean(PointFeature):
     windowable: ClassVar[bool] = False
-
-    @property
-    def name(self) -> str:
-        return "recency_weighted_mean"
 
     def reduce(self, points: Points) -> ir.Value:
         weight = points.position + 1

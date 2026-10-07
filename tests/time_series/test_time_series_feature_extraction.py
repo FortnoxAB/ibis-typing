@@ -125,9 +125,9 @@ class ObservedBalance(IbisSchema):
 
 @frozen
 class ObservedCashSpectralFeatures(ObservedBalance, Expression):
-    cash__nunique_last_3: it.Int64 = None
+    cash__n_unique_last_3: it.Int64 = None
     cash__median_frequency_last_3: it.Float64 = None
-    cash__nunique_last_4: it.Int64 = None
+    cash__n_unique_last_4: it.Int64 = None
     cash__median_frequency_last_4: it.Float64 = None
 
     @classmethod
@@ -154,7 +154,7 @@ class Cash(IbisSchema):
 @frozen
 class UnkeyedCashFeatures(Cash, Expression):
     cash__sum_last_3: it.Float64 = None
-    cash__nunique_last_3: it.Int64 = None
+    cash__n_unique_last_3: it.Int64 = None
     cash__median_frequency_last_3: it.Float64 = None
 
     @classmethod
@@ -185,14 +185,14 @@ def test_without_keys_the_whole_table_is_one_series(evaluate_table):
             month=MARCH,
             cash=4.0,
             cash__sum_last_3=8.0,
-            cash__nunique_last_3=3,
+            cash__n_unique_last_3=3,
             cash__median_frequency_last_3=4.0,
         )
         yield UnkeyedCashFeatures(
             month=APRIL,
             cash=1.0,
             cash__sum_last_3=6.0,
-            cash__nunique_last_3=2,
+            cash__n_unique_last_3=2,
             cash__median_frequency_last_3=4.0,
         )
 
@@ -509,9 +509,9 @@ def test_spectral_features_per_tenant_and_observation_month(evaluate_table):
                     observation_month=observation_month,
                     month=month,
                     cash=cash,
-                    cash__nunique_last_3=nunique_3,
+                    cash__n_unique_last_3=nunique_3,
                     cash__median_frequency_last_3=frequency_3,
-                    cash__nunique_last_4=nunique_4,
+                    cash__n_unique_last_4=nunique_4,
                     cash__median_frequency_last_4=frequency_4,
                 )
 
