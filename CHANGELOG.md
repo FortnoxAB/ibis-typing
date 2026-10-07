@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-06-30
+
+### Added
+
+- `ibis_typing.ibis_api` — `value @ ValueMethod()` implementations of `ibis` API functions, exported through `ibis_typing.it`: `And`, `Or`, `Cases`, `Desc`, `FillNull`, `Greatest`, `IfElse`, `Least`
+- `@`-calls can now be chained on `Deferred()` objects
+- `ExpressionMethod` — chain `Expression` transforms with the `@` operator
+- `ibis_typing.refactor` — CLI that rewrites `ibis.*` function calls to the `@` extension-method syntax (e.g. `ibis.ifelse(cond, l, r)` → `cond @ it.IfElse(l, r)`); requires the `dev` extra (`libcst`, `rope`)
+- `ibis_typing.schemagen` — CLI for generating `IbisSchema` files
+- `ibis_typing.dbt` — dbt integration framework: define models and snapshots as `Expression`s and compile them to dbt SQL, with `RevertibleTableExpression` support
+- `ibis.literal(val)` return types are now annotated as `ibis.Value` for better type support
+
+### Changed
+
+- Internal data transforms now use the `value @ Method()` extension-method syntax
+- Expression rewriter adds parentheses around more expression kinds
+- `ruff` moved to the `dev` extra
+- Pre-commit setup migrated to [prek](https://github.com/j178/prek)
+- README updated with `TableMethod()`, `ValueMethod()` and `ParquetTableStore()` usage
+
+## [1.0.1] - 2026-06-02
+
+### Removed
+
+- `ibis_typing.type_patch` no longer extends `ArrayValue`, `MapValue`, `StructValue` and `JSONValue`, so the type patcher is no longer required for these types. Nested types are an anti-pattern in most dataframes and perform poorly.
+
+### Fixed
+
+- README corrections
+
 ## [1.0.0] - 2026-03-26
 
 Initial open-source release under the MIT license.
@@ -30,5 +60,7 @@ Initial open-source release under the MIT license.
 - DuckDB and Trino backend support
 - MIT license
 
-[Unreleased]: https://github.com/FortnoxAB/ibis-typing/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/FortnoxAB/ibis-typing/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/FortnoxAB/ibis-typing/compare/v1.0.1...v1.1.0
+[1.0.1]: https://github.com/FortnoxAB/ibis-typing/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/FortnoxAB/ibis-typing/releases/tag/v1.0.0
