@@ -41,38 +41,38 @@ def get_expression_dag(expressions: Iterable[type[Expression]]) -> ExpressionInp
     >>> get_expression_dag([sample_transforms.Circle])
     {<class 'ibis_typing.samples.sample_transforms.Circle'>: [<class 'ibis_typing.samples.sample_transforms.CircleParameters'>]}
     """
-    schema_input_map = {}
+    schema_input_map: ExpressionInputs = {}
+    _add_all_dependencies(expressions, schema_input_map)
+    dag = nx.DiGraph(
+        (source, target)
+        for target, sources in schema_input_map.items()
+        for source in (sources or [IbisSchema])
+        # Keep Expressions without any inputs
+    )
+    return {
+        expr: schema_input_map[expr]
+        for expr in nx.topological_sort(dag)
+        if issubclass(expr, Expression)
+    }
 
-    def get_dag():
-        _add_all_dependencies(expressions)
-        dag = nx.DiGraph(
-            (source, target)
-            for target, sources in schema_input_map.items()
-            for source in (sources or [IbisSchema])
-            # Keep Expressions without any inputs
-        )
-        return {
-            expr: schema_input_map[expr]
-            for expr in nx.topological_sort(dag)
-            if issubclass(expr, Expression)
-        }
 
-    def _add_all_dependencies(schemas: Iterable[type[IbisSchema]]) -> None:
-        for schema in schemas:
-            _add_dependencies(schema)
+def _add_all_dependencies(
+    schemas: Iterable[type[IbisSchema]], schema_input_map: ExpressionInputs
+) -> None:
+    for schema in schemas:
+        _add_dependencies(schema, schema_input_map)
 
-    def _add_dependencies(schema: type[IbisSchema]) -> None:
-        if not issubclass(schema, Expression):
-            return
-        if schema in schema_input_map:
-            return
 
-        inputs = [*schema.get_parameter_schema_types().values()]
-        schema_input_map[schema] = inputs
+def _add_dependencies(
+    schema: type[IbisSchema], schema_input_map: ExpressionInputs
+) -> None:
+    if not issubclass(schema, Expression) or schema in schema_input_map:
+        return
 
-        _add_all_dependencies(inputs)
+    inputs = [*schema.get_parameter_schema_types().values()]
+    schema_input_map[schema] = inputs
 
-    return get_dag()
+    _add_all_dependencies(inputs, schema_input_map)
 
 
 def filter_dag_on_column(

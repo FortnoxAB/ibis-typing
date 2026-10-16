@@ -60,22 +60,23 @@ def parse_args(argv=None):
 
 def merge_dirs(source: Path, target: Path, *, update_templates: bool = False):
     logger.info(f"Cloning files between {source} and {target}")
-    for src_path in source.glob("**/*"):
-        src_path: Path
-        if src_path.is_file():
-            src = src_path
-            dst = target / src.relative_to(source)
-            if dst.suffix == ".template":
-                dst = dst.with_suffix("")
+    for src in source.glob("**/*"):
+        if src.is_file():
+            _copy_file(src, target / src.relative_to(source), update_templates)
 
-            logger.info(f"Copying {src}" if not update_templates else f"Updating {src}")
 
-            dst.parent.mkdir(parents=True, exist_ok=True)
-            if update_templates:
-                src, dst = dst, src
+def _copy_file(src: Path, dst: Path, update_templates: bool) -> None:
+    if dst.suffix == ".template":
+        dst = dst.with_suffix("")
 
-            shutil.copyfile(src, dst)
-            shutil.copymode(src, dst)
+    logger.info(f"Copying {src}" if not update_templates else f"Updating {src}")
+
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    if update_templates:
+        src, dst = dst, src
+
+    shutil.copyfile(src, dst)
+    shutil.copymode(src, dst)
 
 
 if __name__ == "__main__":
