@@ -81,6 +81,7 @@ dev = [
     "coverage>=7",
     "ty>=0.0.24",
     "prek>=0.4.4",
+    "complexipy>=8.0.1",
 ]
 
 [project.entry-points.pytest11]
