@@ -83,16 +83,7 @@ class TimeSeriesFeatureExtraction(TableMethod):
         validate(self, table)
         keys = [str(key) for key in self.keys]
         columns = [str(column) for column in self.columns]
-        point_features = [
-            feature for feature in self.features if isinstance(feature, PointFeature)
-        ]
-        windowed = [feature for feature in point_features if feature.windowable]
-        expanded_point = [
-            feature for feature in point_features if not feature.windowable
-        ]
-        spectral = [
-            feature for feature in self.features if isinstance(feature, SpectralFeature)
-        ]
+        windowed, expanded_point, spectral = self._split_features()
 
         prepared = stages.prepare(
             table,
@@ -104,22 +95,9 @@ class TimeSeriesFeatureExtraction(TableMethod):
         row_values: dict[str, ir.Value] = {}
         results: list[Table] = []
         for window_size in self.windows:
-            if windowed:
-                row_values |= stages.window_features(
-                    prepared,
-                    keys=keys,
-                    columns=columns,
-                    features=windowed,
-                    window_size=window_size,
-                    naming=self.output_name,
-                )
-            if spectral and window_size < 3:
-                # Detrending leaves nothing of a window with fewer than 3 points.
-                row_values |= {
-                    self.output_name(column, feature, window_size): ibis.null("float64")
-                    for column in columns
-                    for feature in spectral
-                }
+            row_values |= self._row_values(
+                prepared, keys, columns, windowed, spectral, window_size
+            )
             results += self._expanded_results(
                 prepared, keys, columns, expanded_point, spectral, window_size
             )
@@ -134,6 +112,45 @@ class TimeSeriesFeatureExtraction(TableMethod):
         rows = prepared.mutate(**row_values) if row_values else prepared
         joined = stages.join_back(rows, results, keys=keys)
         return joined.select(*table.columns, *output_names)
+
+    def _split_features(
+        self,
+    ) -> tuple[list[PointFeature], list[PointFeature], list[SpectralFeature]]:
+        """Split features into windowed point, expanded point and spectral."""
+        point = [f for f in self.features if isinstance(f, PointFeature)]
+        windowed = [f for f in point if f.windowable]
+        expanded = [f for f in point if not f.windowable]
+        spectral = [f for f in self.features if isinstance(f, SpectralFeature)]
+        return windowed, expanded, spectral
+
+    def _row_values(  # noqa: PLR0913
+        self,
+        prepared: Table,
+        keys: list[str],
+        columns: list[str],
+        windowed: list[PointFeature],
+        spectral: list[SpectralFeature],
+        window_size: int,
+    ) -> dict[str, ir.Value]:
+        """Per-row feature values of `window_size` computed without expansion."""
+        values: dict[str, ir.Value] = {}
+        if windowed:
+            values |= stages.window_features(
+                prepared,
+                keys=keys,
+                columns=columns,
+                features=windowed,
+                window_size=window_size,
+                naming=self.output_name,
+            )
+        if spectral and window_size < 3:
+            # Detrending leaves nothing of a window with fewer than 3 points.
+            values |= {
+                self.output_name(column, feature, window_size): ibis.null("float64")
+                for column in columns
+                for feature in spectral
+            }
+        return values
 
     def _expanded_results(  # noqa: PLR0913
         self,

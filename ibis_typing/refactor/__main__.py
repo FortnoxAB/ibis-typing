@@ -31,6 +31,28 @@ from ibis_typing.refactor.migrations import MIGRATIONS
 from . import writer
 
 
+def main(argv: list[str] | None = None) -> None:
+    args = parse_args(argv)
+
+    apply = args.apply
+    project = Project(args.project)
+    transformers = [MIGRATIONS[m] for m in args.module]
+
+    files = _select_files(args, project)
+
+    changed_files = sum(
+        writer.rewrite_file(t, f, apply=apply) for f in files for t in transformers
+    )
+
+    action = "applied" if apply else "would change"
+    print(f"\n{action}: {changed_files} / {len(files)} file(s)")
+
+    if not apply and changed_files:
+        print("Re-run with --apply to write changes.")
+
+    project.close()
+
+
 def parse_args(argv: list[str] | None) -> Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
 
@@ -57,34 +79,14 @@ def parse_args(argv: list[str] | None) -> Namespace:
     return parser.parse_args(argv)
 
 
-def main(argv: list[str] | None = None) -> None:
-    args = parse_args(argv)
-
-    apply = args.apply
-    project = Project(args.project)
-    transformers = [MIGRATIONS[m] for m in args.module]
-
-    files = (
-        [Path(args.file)]
-        if args.file
-        else [
-            Path(args.project) / res.path
-            for res in project.get_files()
-            if isinstance(res, File) and res.path.endswith(".py")
-        ]
-    )
-
-    changed_files = sum(
-        writer.rewrite_file(t, f, apply=apply) for f in files for t in transformers
-    )
-
-    action = "applied" if apply else "would change"
-    print(f"\n{action}: {changed_files} / {len(files)} file(s)")
-
-    if not apply and changed_files:
-        print("Re-run with --apply to write changes.")
-
-    project.close()
+def _select_files(args: Namespace, project: Project) -> list[Path]:
+    if args.file:
+        return [Path(args.file)]
+    return [
+        Path(args.project) / res.path
+        for res in project.get_files()
+        if isinstance(res, File) and res.path.endswith(".py")
+    ]
 
 
 if __name__ == "__main__":

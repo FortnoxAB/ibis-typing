@@ -91,25 +91,10 @@ class IbisFuncToMethodRule(CstRule[libcst.Call]):
         ):
             return None
 
-        def _is_left_kw(arg: libcst.Arg) -> bool:
-            return bool((kw := arg.keyword) and kw.value == self.left_kw)
-
-        if self.left_kw:
-            if not (
-                kwarg := next((arg for arg in node.args if _is_left_kw(arg)), None)
-            ):
-                return None
-
-            left, right = (
-                kwarg,
-                [arg for arg in node.args if not _is_left_kw(arg)],
-            )
-        else:
-            head, *tail = node.args
-            if head.star:
-                return None
-
-            left, right = head, tail
+        split = self._split_args(node)
+        if split is None:
+            return None
+        left, right = split
 
         return left.value @ cst.MatMul(
             (
@@ -119,3 +104,21 @@ class IbisFuncToMethodRule(CstRule[libcst.Call]):
             )
             @ cst.Call(right)
         )
+
+    def _split_args(
+        self, node: libcst.Call
+    ) -> tuple[libcst.Arg, list[libcst.Arg]] | None:
+        """Split call args into the receiver arg and the remaining args."""
+        if self.left_kw:
+            kwarg = next((arg for arg in node.args if self._is_left_kw(arg)), None)
+            if not kwarg:
+                return None
+            return kwarg, [arg for arg in node.args if not self._is_left_kw(arg)]
+
+        head, *tail = node.args
+        if head.star:
+            return None
+        return head, tail
+
+    def _is_left_kw(self, arg: libcst.Arg) -> bool:
+        return bool((kw := arg.keyword) and kw.value == self.left_kw)

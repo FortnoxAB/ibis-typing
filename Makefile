@@ -76,6 +76,7 @@ lint:
 	uv run ruff format --check
 	uv run ty check
 	uv run deptry .
+	uv run complexipy --suggest-refactors
 
 # IDE
 setup_ide:

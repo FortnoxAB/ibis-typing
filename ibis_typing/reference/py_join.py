@@ -92,27 +92,10 @@ def join(
     if len(tables) == 1:
         return cattrs.unstructure(tables[0])
 
-    def key(row):
-        return tuple(row[k] for k in keys)
-
     t_left, t_right, *tail = tables
 
-    left, right = (
-        {key(row): row for row in cattrs.unstructure(table)}
-        for table in [t_left, t_right]
-    )
-
-    left_names = set(next(iter(left.values()), {}).keys())
-    right_names = set(next(iter(right.values()), {}).keys())
-    conflicts = left_names & right_names
-
-    right = {
-        key: {
-            (f"{name}_right" if name in conflicts else name): value
-            for name, value in row.items()
-        }
-        for key, row in right.items()
-    }
+    left = _index_by_key(t_left, keys)
+    right = _suffix_conflicts(left, _index_by_key(t_right, keys))
 
     joined_keys = _join_keys(set(left), set(right), how=how)
     joined = [left.get(key, {}) | right.get(key, {}) for key in joined_keys]
@@ -124,6 +107,25 @@ def join(
     return join(
         processed, *tail, how=how, keys=keys, arbitrary=arbitrary, max=max, min=min
     )
+
+
+def _index_by_key(table: Sequence, keys: Sequence[it.NameOrType]) -> dict[tuple, dict]:
+    return {tuple(row[k] for k in keys): row for row in cattrs.unstructure(table)}
+
+
+def _suffix_conflicts(left: Mapping[tuple, Mapping], right: dict[tuple, dict]) -> dict:
+    """Suffix column names of `right` that also exist in `left` with `_right`."""
+    left_names = set(next(iter(left.values()), {}).keys())
+    right_names = set(next(iter(right.values()), {}).keys())
+    conflicts = left_names & right_names
+
+    return {
+        key: {
+            (f"{name}_right" if name in conflicts else name): value
+            for name, value in row.items()
+        }
+        for key, row in right.items()
+    }
 
 
 def _join_keys(left: set[tuple], right: set[tuple], *, how: JoinMethod) -> set[tuple]:
@@ -149,23 +151,23 @@ def _resolve_duplicate_values(
     override_names = set(keys) | set(arbitrary) | set(max) | set(min)
     drops = {f"{name}_right" for name in override_names}
 
-    def iter_overrides(row: Mapping):
-        for collection, op in [
-            ([*keys, *arbitrary], lambda left, _: left),
-            (max, builtins.max),
-            (min, builtins.min),
-        ]:
-            for name in collection:
-                left = row.get(name)
-                right = row.get(f"{name}_right")
-                yield name, _binary_op(left, right, op)
-
-    overrides = [dict(iter_overrides(row)) for row in table]
+    groups = [
+        ([*keys, *arbitrary], lambda left, _: left),
+        (max, builtins.max),
+        (min, builtins.min),
+    ]
+    overrides = [dict(_iter_overrides(row, groups)) for row in table]
     kept = [
         {name: val for name, val in row.items() if name not in drops} for row in table
     ]
 
     return [row | override for row, override in zip(kept, overrides)]
+
+
+def _iter_overrides(row: Mapping, groups: Sequence[tuple[Sequence, Any]]):
+    for collection, op in groups:
+        for name in collection:
+            yield name, _binary_op(row.get(name), row.get(f"{name}_right"), op)
 
 
 def _binary_op(left, right, op):
