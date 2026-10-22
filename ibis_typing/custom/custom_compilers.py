@@ -6,6 +6,7 @@ import ibis
 import ibis.expr.datatypes as dt
 import sqlglot.expressions as sg
 from ibis.backends.sql import compilers
+from ibis.backends.sql.compilers.base import SQLGlotCompiler
 from ibis.expr import operations
 from sqlglot.expressions import Identifier
 
@@ -29,7 +30,10 @@ def compiler_extension[S](cls: type[S]) -> type[S]:
     return cls
 
 
-class LiteralTableCompiler:
+@compiler_extension
+class LiteralTableCompiler(SQLGlotCompiler):
+    """Base SQLGlotCompiler extension for compiling LiteralTable operations."""
+
     def visit_LiteralTable(
         self,
         op: custom_operations.LiteralTable,
@@ -53,8 +57,6 @@ class TrinoCompilerPatch(compilers.TrinoCompiler):
 @compiler_extension
 class TrinoCompiler(compilers.TrinoCompiler):
     agg: Any
-
-    visit_LiteralTable = LiteralTableCompiler.visit_LiteralTable
 
     def visit_ColumnChecksum(self, op: custom_operations.ColumnChecksum, *, arg, where):
         return self.f.from_big_endian_64(self.agg.checksum(arg, where=where))
@@ -83,8 +85,6 @@ class TrinoCompiler(compilers.TrinoCompiler):
 @compiler_extension
 class DuckDbCompiler(compilers.DuckDBCompiler):
     agg: Any
-
-    visit_LiteralTable = LiteralTableCompiler.visit_LiteralTable
 
     def visit_ColumnChecksum(self, op: custom_operations.ColumnChecksum, *, arg, where):
         checksum = self.agg.bit_xor(self.f.hash(arg), where=where)
