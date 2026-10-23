@@ -207,4 +207,4 @@ check-script = true
 cache-dir = ".complexipy_cache"
 
 [tool.pyrefly]
-preset = "default"
+preset = "strict"
