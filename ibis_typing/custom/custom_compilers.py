@@ -48,9 +48,33 @@ class LiteralTableCompiler(SQLGlotCompiler):
 
 
 @compiler_extension
+class SQLiteCompiler(compilers.SQLiteCompiler):
+    def visit_LiteralTable(
+        self,
+        op: custom_operations.LiteralTable,
+        *,
+        data: tuple[tuple[Any, ...], ...],
+        schema: ibis.Schema,
+        name: str,
+    ) -> sg.Select:
+        # Note: SQLite does not support column aliases on VALUES in FROM.
+        # A CTE column list is standard SQL and names the columns portably.
+        values = custom_operations.LiteralTable.to_values(data)
+        alias = sg.TableAlias(
+            this=sg.to_identifier(name),
+            columns=[sg.to_identifier(column, quoted=True) for column in schema],
+        )
+        source = sg.CTE(this=sg.values(values), alias=alias)
+        query = sg.select("*", copy=False).from_(name, copy=False)
+        query.set("with_", sg.With(expressions=[source]))
+        return query
+
+
+@compiler_extension
 class TrinoCompilerPatch(compilers.TrinoCompiler):
     def visit_Hash(self, op: operations.Hash, *, arg):
-        # Note: Trino does not support the has function by default. Extend to support integer hashing.
+        # Note: Trino does not support the hash function by default.
+        # Extend to support integer hashing.
         return self.f.from_big_endian_64(self.f.xxhash64(arg))
 
 
