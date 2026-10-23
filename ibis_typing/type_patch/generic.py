@@ -49,14 +49,10 @@ def get_patchers():
 
 
 class ValueExtensionMethodPatch(Value):
-    # Custom patch for adding type support for `it.defer(int).method()`
-    # Hi-jack any unpatched function.
-
-    @overload
-    def __rmatmul__(self, other: Value) -> Self: ...  # type: ignore
-
-    def name(self, name: str, /) -> Self:
-        raise NotImplementedError
+    # Type `value @ it.defer(int).method()`, where `it.defer()` is typed as a Value.
+    # Returns NotImplemented to defer to `other.__rmatmul__` at runtime.
+    def __matmul__[V: Value](self, other: V) -> V:
+        return NotImplemented  # pyrefly: ignore[bad-return]
 
 
 class ValueCast(Value):

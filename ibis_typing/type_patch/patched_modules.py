@@ -9,6 +9,7 @@ import ibis.expr.types.logical
 import ibis.expr.types.maps
 import ibis.expr.types.numeric
 import ibis.expr.types.relations
+import ibis.expr.types.rich
 
 from . import (
     api,
@@ -17,6 +18,7 @@ from . import (
     monkeypatch,
     numeric,
     relations,
+    rich,
 )
 from .patchers import PatchedModuleWriter
 
@@ -42,6 +44,10 @@ def get_patched_module_writers():
         PatchedModuleWriter(
             ibis.expr.types.relations,
             relations.get_patchers(),
+        ),
+        PatchedModuleWriter(
+            ibis.expr.types.rich,
+            rich.get_patchers(),
         ),
         PatchedModuleWriter(
             _pytest.monkeypatch,

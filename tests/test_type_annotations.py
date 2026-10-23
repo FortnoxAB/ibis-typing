@@ -65,7 +65,8 @@ def test_simple_column_typing(fetch_table, data):
     _ = inputs.table @ Select(
         expr={
             col.integer: this[col.integer].bit_and(),
-            col.float: this[col.float].isnan(),
+            # ty promotes `float` to `int | float`, matching the Integer overload too.
+            col.float: this[col.float].isnan(),  # ty:ignore[unresolved-attribute]
             col.boolean: this[col.boolean].all(),
             col.text: this[col.text].lower(),
             col.bytes: this[col.bytes].hashbytes(),

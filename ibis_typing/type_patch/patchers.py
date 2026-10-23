@@ -268,6 +268,25 @@ class TypeCheckingModulePatcher:
 
 
 @frozen
+class SourceReplacePatcher:
+    """Replace an exact source snippet in the target module.
+
+    >>> patcher = SourceReplacePatcher("x = 1", "x = 2")
+    >>> print(patcher("x = 1"))
+    x = 2
+    """
+
+    old: str
+    new: str
+
+    def __call__(self, module_impl: str) -> str:
+        logger.info("Replace source snippet")
+        if self.old not in module_impl:
+            raise LookupError(f"Source snippet not found: {self.old!r}")
+        return module_impl.replace(self.old, self.new)
+
+
+@frozen
 class TypingOverloadImportPatcher:
     """Import @overload in target module.
 

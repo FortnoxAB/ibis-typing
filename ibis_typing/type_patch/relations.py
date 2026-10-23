@@ -41,14 +41,10 @@ def get_patchers():
 
 
 class TableExtensionMethodPatch(Table):
-    # Custom patch for adding type support for `it.deferred.method()`
-    # Hi-jack any unpatched function for the patches, here: get_name.
-
-    @overload
-    def __rmatmul__(self, other: Table) -> Table: ...  # type: ignore
-
-    def get_name(self) -> str:
-        raise NotImplementedError
+    # Type `table @ it.deferred.method()`, where `it.deferred` is typed as a Table.
+    # Returns NotImplemented to defer to `other.__rmatmul__` at runtime.
+    def __matmul__(self, other: Table) -> Table:
+        return NotImplemented
 
 
 class TableGetItem(Table):

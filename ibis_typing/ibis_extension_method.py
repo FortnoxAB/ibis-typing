@@ -60,6 +60,9 @@ class ValueMethod[T: Value, R: Value](ExtensionMethod[T, R], abc.ABC):
 class SelfMethod[T: Value](ValueMethod[T, T], abc.ABC):
     """T @ SelfMethod() -> T."""
 
+    def __rmatmul__[V: Value](self: SelfMethod[V], other: V) -> V:
+        return self.apply(other)
+
 
 @frozen(init=False)
 class ArgsMethod[V: Value](SelfMethod[V], abc.ABC):
