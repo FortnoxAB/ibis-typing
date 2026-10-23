@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import ClassVar
+from typing import ClassVar, override
 
 from attrs import frozen
 
@@ -18,7 +18,7 @@ from .dbt_model import DbtModel, GeneralConfig, PlainStrEnum
 
 
 @frozen(kw_only=True)
-class DbtSnapshot[E: DbtSnapshotAbstract](DbtModel):
+class DbtSnapshot[E: DbtSnapshotAbstract](DbtModel[E]):
     """Integration mark-up for DBT snapshot function."""
 
     expr: type[E]
@@ -75,14 +75,15 @@ class HardDeletes(PlainStrEnum):
 
 
 @frozen
-class DbtSnapshotAbstractTableExpression(SingleInputTableExpression):
+class DbtSnapshotAbstractTableExpression(SingleInputTableExpression[IbisSchema]):
     config: SnapshotConfig
 
     @property
+    @override
     def input_schemas(self):
         return {"origin": self.origin}
 
-    def __call__(self, origin: IbisTable):
+    def __call__(self, origin: IbisTable[IbisSchema]):
         defaults = EmptyTableProvider()(SnapshotsCols).table
         delete_cols = (
             EmptyTableProvider()(SnapshotHardDeleteNewRecordCols).table

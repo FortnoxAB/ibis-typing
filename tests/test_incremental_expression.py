@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import override
 
 import pytest
 from attrs import frozen
@@ -18,6 +19,7 @@ from ibis_typing.checksum_buckets import (
     IncrementalExpression,
     IncrementalParams,
 )
+from ibis_typing.fixtures.expressions import EvaluateTable, FetchTable
 from ibis_typing.ibis_adapter import IbisTable
 from ibis_typing.ibis_time import TimestampNow
 from ibis_typing.ibis_utils import Aggregate
@@ -51,6 +53,7 @@ class MyIncrementalExpression(BucketedInputsExpression):
     )
 
     @classmethod
+    @override
     def from_expression(cls, inputs: IbisTable[Input]):
         args = cls.incremental_params
         table = inputs.table @ Aggregate(
@@ -92,7 +95,7 @@ def as_providers(rows: Sequence[IbisSchema]) -> TableProviders:
     return [provider_from_rows(rows)]
 
 
-def test_IncrementalExpression_full_lifecycle(fetch_table):
+def test_IncrementalExpression_full_lifecycle(fetch_table: FetchTable):
     timestamp_t0 = [TimestampNow(now_t0.datetime)]
     timestamp_t1 = [TimestampNow(now_t1.datetime)]
 
@@ -138,16 +141,17 @@ def test_check_increment_throws_on_duplicated_key_rows():
 
 
 def test_evaluate_table_raises_for_duplicated_key_rows_in_incremental_expression(
-    evaluate_table,
+    evaluate_table: EvaluateTable,
 ):
     @frozen
     class MyIncrementalModel(IncrementalExpression):
         value: it.Int64 = None
 
         incremental_params = IncrementalParams(())
-        _get_table_schema = IbisSchema._get_table_schema
+        _get_table_schema = IbisSchema._get_table_schema  # pyrefly: ignore[missing-override-decorator]
 
         @classmethod
+        @override
         def from_expression(cls):
             return cls.of_rows(rows)
 

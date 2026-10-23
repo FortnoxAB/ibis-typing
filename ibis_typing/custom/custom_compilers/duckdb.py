@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, override
 
 import ibis.expr.datatypes as dt
 import sqlglot.expressions as sg
@@ -20,25 +20,46 @@ class DuckDbCompiler(compilers.DuckDBCompiler):
     if TYPE_CHECKING:
         # The inherited AggGen descriptor returns an untyped attribute accessor.
         @property
+        @override
         def agg(self) -> Any: ...
 
-    def visit_ColumnChecksum(self, op: custom_operations.ColumnChecksum, *, arg, where):
+    def visit_ColumnChecksum(
+        self,
+        op: custom_operations.ColumnChecksum,
+        *,
+        arg: sg.Expression,
+        where: sg.Expression,
+    ):
         checksum = self.agg.bit_xor(self.f.hash(arg), where=where)
         return self.cast(checksum % 2 ** (64 - 1), dt.int64)
 
-    def visit_DateAddMonth(self, op: custom_operations.DateAddMonth, *, left, right):
+    def visit_DateAddMonth(
+        self,
+        op: custom_operations.DateAddMonth,
+        *,
+        left: sg.Expression,
+        right: sg.Expression,
+    ):
         return self.cast(left + self.f.to_months(right), dt.date)
 
-    def visit_DateAddDay(self, op: custom_operations.DateAddDay, *, left, right):
+    def visit_DateAddDay(
+        self,
+        op: custom_operations.DateAddDay,
+        *,
+        left: sg.Expression,
+        right: sg.Expression,
+    ):
         return self.cast(left + self.f.to_days(right), dt.date)
 
-    def visit_JsonParse(self, op: custom_operations.JsonParse, *, arg):
+    def visit_JsonParse(self, op: custom_operations.JsonParse, *, arg: sg.Expression):
         return self.cast(arg, dt.JSON())
 
-    def visit_JsonFormat(self, op: custom_operations.JsonFormat, *, arg):
+    def visit_JsonFormat(self, op: custom_operations.JsonFormat, *, arg: sg.Expression):
         return self.cast(arg, dt.string())
 
-    def visit_UUIDFromInt(self, op: custom_operations.UUIDFromInt, *, arg):
+    def visit_UUIDFromInt(
+        self, op: custom_operations.UUIDFromInt, *, arg: sg.Expression
+    ):
         uuid_str = self.f.lpad(self.f.hex(arg), 32, "0")
         return self.cast(uuid_str, dt.UUID())
 
@@ -55,7 +76,7 @@ class DuckDbCompiler(compilers.DuckDBCompiler):
                 expression=lit(2),
             )
 
-        def is_even(number):
+        def is_even(number: Identifier):
             return sg.Mod(this=number, expression=lit(2)).eq(lit(0))
 
         digit = sg.to_identifier("digit")

@@ -29,7 +29,7 @@ def get_patchers():
 def desc[T: ir.Value](expr: T, /, *, nulls_first: bool = False) -> T: ...
 @overload
 def desc(expr: it.NameOrType, /, *, nulls_first: bool = False) -> ir.Value: ...
-def desc(expr, /, *, nulls_first: bool = False) -> ir.Value:
+def desc(expr: Any, /, *, nulls_first: bool = False) -> ir.Value:
     return ibis.desc(expr, nulls_first=nulls_first)
 
 
@@ -44,8 +44,8 @@ def ifelse[V: Value](condition: Any, true_expr: V, false_expr: Any) -> V: ...
 @overload
 def ifelse[V: Value](condition: Any, true_expr: Any, false_expr: V) -> V: ...
 @overload
-def ifelse(condition, true_expr, false_expr) -> ir.Value: ...
-def ifelse(condition, true_expr, false_expr):
+def ifelse(condition: Any, true_expr: Any, false_expr: Any) -> ir.Value: ...
+def ifelse(condition: Any, true_expr: Any, false_expr: Any) -> ir.Value:
     return ibis.ifelse(condition, true_expr, false_expr)
 
 
@@ -62,32 +62,32 @@ def cases[V: Value](
     else_: Any | None,
 ) -> V: ...
 @overload
-def cases(branch, *branches, else_=None) -> ir.Value: ...
-def cases(branch, *branches, else_=None):
+def cases(branch: Any, *branches: Any, else_: Any = None) -> ir.Value: ...
+def cases(branch: Any, *branches: Any, else_: Any = None) -> ir.Value:
     return ibis.cases(branch, *branches, else_=else_)
 
 
 @overload
 def coalesce[V: Value](arg: V, *args: Any) -> V: ...
 @overload
-def coalesce(arg, *args) -> ir.Value: ...
-def coalesce(arg, *args):
+def coalesce(arg: Any, *args: Any) -> ir.Value: ...
+def coalesce(arg: Any, *args: Any) -> ir.Value:
     return ibis.coalesce(*args)
 
 
 @overload
 def greatest[V: Value](arg: V, *args: Any) -> V: ...
 @overload
-def greatest(arg, *args) -> ir.Value: ...
-def greatest(arg, *args):
+def greatest(arg: Any, *args: Any) -> ir.Value: ...
+def greatest(arg: Any, *args: Any) -> ir.Value:
     return ibis.greatest(*args)
 
 
 @overload
 def least[V: Value](arg: V, *args: Any) -> V: ...
 @overload
-def least(arg, *args) -> ir.Value: ...
-def least(arg, *args):
+def least(arg: Any, *args: Any) -> ir.Value: ...
+def least(arg: Any, *args: Any) -> ir.Value:
     return ibis.least(*args)
 
 
@@ -95,7 +95,7 @@ def least(arg, *args):
 def or_(*predicates: ir.BooleanValue) -> ir.BooleanValue: ...
 @overload
 def or_(*predicates: bool) -> bool: ...
-def or_(*predicates):
+def or_(*predicates: Any) -> Any:
     return ibis.or_(*predicates)
 
 
@@ -103,7 +103,7 @@ def or_(*predicates):
 def and_(*predicates: ir.BooleanValue) -> ir.BooleanValue: ...
 @overload
 def and_(*predicates: bool) -> bool: ...
-def and_(*predicates):
+def and_(*predicates: Any) -> Any:
     return ibis.and_(*predicates)
 
 

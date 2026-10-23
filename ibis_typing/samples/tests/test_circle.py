@@ -1,10 +1,12 @@
 import math
+from typing import cast
 
+from ibis_typing.fixtures.expressions import EvaluateTable
 from ibis_typing.samples.sample_transforms import Circle, CircleParameters
 from ibis_typing.utils import ApproxFloat
 
 
-def test_circle_calculations(evaluate_table):
+def test_circle_calculations(evaluate_table: EvaluateTable):
     inputs = [
         CircleParameters(diameter=10.0),
     ]
@@ -22,8 +24,9 @@ def test_circle_calculations(evaluate_table):
     expected_approx = [
         Circle(
             diameter=c.diameter,
-            area=ApproxFloat(c.area),
-            circumference=ApproxFloat(c.circumference),
+            # Fetched rows hold plain Python values.
+            area=ApproxFloat(cast(float, c.area)),
+            circumference=ApproxFloat(cast(float, c.circumference)),
         )
         for c in expected
     ]

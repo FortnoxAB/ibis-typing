@@ -10,6 +10,7 @@ from typing import cast
 
 from . import evaluator, schema_bindings
 from .expression import Expression
+from .ibis_adapter import IbisTable
 from .plot import graph
 from .schema_bindings import NameProvider, SuffixNameProvider
 from .table_provider import AbstractTableProvider, TableProviders, get_abstract_table
@@ -68,7 +69,7 @@ def generate_schemas(
         if expr in expr_to_schema_package
     }
 
-    tables = {}
+    tables: dict[type[Expression], IbisTable[Expression]] = {}
     providers: TableProviders = cast(TableProviders, [tables.get, get_abstract_table])
 
     for expr, schema_package in expr_to_schema_package.items():

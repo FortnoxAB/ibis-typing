@@ -38,10 +38,10 @@ class PatchTarget(UserString):
     def __init__(self, *attr_chain: str):
         super().__init__(".".join(attr_chain))
 
-    def __getattr__(self, attr):
+    def __getattr__(self, attr: str) -> PatchTarget:
         return PatchTarget(str(self), attr)
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: Any, **kwargs: Any) -> mock._Call:
         return mock.call(*args, **kwargs)
 
     @property

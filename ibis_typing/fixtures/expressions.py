@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
+from typing import cast
 
 import ibis
 import pytest
@@ -65,12 +66,13 @@ class EvaluateTable:
 
 
 @contextmanager
-def checked_incremental_cache() -> Iterator[dict]:
-    cache = {}
+def checked_incremental_cache() -> Iterator[ibis_adapter.TableMap[IbisSchema]]:
+    cache: ibis_adapter.TableMap[IbisSchema] = {}
     yield cache
     for expr, table in cache.items():
         if issubclass(expr, IncrementalExpression):
-            evaluator.check_increment(table)
+            # The cache maps each schema type to a table of that schema.
+            evaluator.check_increment(cast(IbisTable[IncrementalExpression], table))
 
 
 @frozen

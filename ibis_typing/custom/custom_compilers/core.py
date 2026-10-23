@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import ibis
 import sqlglot.expressions as sg
 from ibis.backends.sql.compilers.base import SQLGlotCompiler
@@ -30,7 +32,7 @@ class LiteralTableCompiler(SQLGlotCompiler):
         self,
         op: custom_operations.LiteralTable,
         *,
-        data,
+        data: tuple[tuple[Any, ...], ...],
         schema: ibis.Schema,
         name: str,
     ):

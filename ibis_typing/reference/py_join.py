@@ -1,64 +1,68 @@
 """Reference python implementation for IbisSchema transforms like join."""
 
 import builtins
-from collections.abc import Mapping, Sequence
-from typing import Any
+from collections.abc import Callable, Iterator, Mapping, Sequence
+from typing import Any, cast
 
 import cattrs
 
 from ibis_typing import IbisSchema, it
 from ibis_typing.ibis_joins import JoinMethod
 
+type Row = Mapping[it.NameOrType, Any]
+type RowDict = dict[it.NameOrType, Any]
+type Key = tuple[Any, ...]
+type BinaryOp = Callable[[Any, Any], Any]
 
-def to_schema[T: IbisSchema](table: Sequence[Mapping], cls: type[T]) -> list[T]:
-    return [cls(**row) for row in table]
+
+def to_schema[T: IbisSchema](table: Sequence[Row], cls: type[T]) -> list[T]:
+    # Column names are strings at runtime.
+    return [cls(**cast(Mapping[str, Any], row)) for row in table]
 
 
-def select(
-    table: Sequence[Mapping], *columns: it.NameOrType
-) -> list[Mapping[it.NameOrType, Any]]:
+def select(table: Sequence[Row], *columns: it.NameOrType) -> list[Row]:
     return [{col: row.get(col) for col in columns} for row in table]
 
 
 def inner_join(
-    *tables: Sequence[IbisSchema | Mapping],
+    *tables: Sequence[IbisSchema | Row],
     keys: Sequence[it.NameOrType],
     arbitrary: Sequence[it.NameOrType] = (),
     max: Sequence[it.NameOrType] = (),
     min: Sequence[it.NameOrType] = (),
-) -> list[Mapping]:
+) -> list[Row]:
     return join(
         *tables, how=JoinMethod.INNER, keys=keys, arbitrary=arbitrary, max=max, min=min
     )
 
 
 def left_join(
-    *tables: Sequence[IbisSchema | Mapping],
+    *tables: Sequence[IbisSchema | Row],
     keys: Sequence[it.NameOrType],
     arbitrary: Sequence[it.NameOrType] = (),
     max: Sequence[it.NameOrType] = (),
     min: Sequence[it.NameOrType] = (),
-) -> list[Mapping]:
+) -> list[Row]:
     return join(
         *tables, how=JoinMethod.OUTER, keys=keys, arbitrary=arbitrary, max=max, min=min
     )
 
 
 def outer_join(
-    *tables: Sequence[IbisSchema | Mapping],
+    *tables: Sequence[IbisSchema | Row],
     keys: Sequence[it.NameOrType],
-) -> list[Mapping]:
+) -> list[Row]:
     return join(*tables, how=JoinMethod.OUTER, keys=keys)
 
 
 def join(
-    *tables: Sequence[IbisSchema | Mapping],
+    *tables: Sequence[IbisSchema | Row],
     how: JoinMethod,
     keys: Sequence[it.NameOrType],
     arbitrary: Sequence[it.NameOrType] = (),
     max: Sequence[it.NameOrType] = (),
     min: Sequence[it.NameOrType] = (),
-) -> list[Mapping]:
+) -> list[Row]:
     """Join Python mappings Ibis-style.
 
     Tables are merged via key fields.
@@ -109,14 +113,19 @@ def join(
     )
 
 
-def _index_by_key(table: Sequence, keys: Sequence[it.NameOrType]) -> dict[tuple, dict]:
+def _index_by_key(
+    table: Sequence[IbisSchema | Row], keys: Sequence[it.NameOrType]
+) -> dict[Key, RowDict]:
     return {tuple(row[k] for k in keys): row for row in cattrs.unstructure(table)}
 
 
-def _suffix_conflicts(left: Mapping[tuple, Mapping], right: dict[tuple, dict]) -> dict:
+def _suffix_conflicts(
+    left: Mapping[Key, Row], right: Mapping[Key, Row]
+) -> dict[Key, RowDict]:
     """Suffix column names of `right` that also exist in `left` with `_right`."""
-    left_names = set(next(iter(left.values()), {}).keys())
-    right_names = set(next(iter(right.values()), {}).keys())
+    empty: Row = {}
+    left_names = set(next(iter(left.values()), empty).keys())
+    right_names = set(next(iter(right.values()), empty).keys())
     conflicts = left_names & right_names
 
     return {
@@ -128,7 +137,7 @@ def _suffix_conflicts(left: Mapping[tuple, Mapping], right: dict[tuple, dict]) -
     }
 
 
-def _join_keys(left: set[tuple], right: set[tuple], *, how: JoinMethod) -> set[tuple]:
+def _join_keys(left: set[Key], right: set[Key], *, how: JoinMethod) -> set[Key]:
     match how:
         case JoinMethod.OUTER:
             return left | right
@@ -141,17 +150,17 @@ def _join_keys(left: set[tuple], right: set[tuple], *, how: JoinMethod) -> set[t
 
 
 def _resolve_duplicate_values(
-    table: Sequence[Mapping],
+    table: Sequence[Row],
     *,
     keys: Sequence[it.NameOrType],
     arbitrary: Sequence[it.NameOrType] = (),
     max: Sequence[it.NameOrType] = (),
     min: Sequence[it.NameOrType] = (),
-) -> Sequence[Mapping]:
+) -> Sequence[Row]:
     override_names = set(keys) | set(arbitrary) | set(max) | set(min)
     drops = {f"{name}_right" for name in override_names}
 
-    groups = [
+    groups: list[tuple[Sequence[it.NameOrType], BinaryOp]] = [
         ([*keys, *arbitrary], lambda left, _: left),
         (max, builtins.max),
         (min, builtins.min),
@@ -164,13 +173,15 @@ def _resolve_duplicate_values(
     return [row | override for row, override in zip(kept, overrides)]
 
 
-def _iter_overrides(row: Mapping, groups: Sequence[tuple[Sequence, Any]]):
+def _iter_overrides(
+    row: Row, groups: Sequence[tuple[Sequence[it.NameOrType], BinaryOp]]
+) -> Iterator[tuple[it.NameOrType, Any]]:
     for collection, op in groups:
         for name in collection:
             yield name, _binary_op(row.get(name), row.get(f"{name}_right"), op)
 
 
-def _binary_op(left, right, op):
+def _binary_op(left: Any, right: Any, op: BinaryOp) -> Any:
     match (left, right):
         case (None, _):
             return right

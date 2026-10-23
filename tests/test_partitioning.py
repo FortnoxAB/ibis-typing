@@ -1,7 +1,10 @@
+from typing import override
+
 from attrs import frozen
 from ibis import literal
 
 from ibis_typing import Expression, IbisTable, ibis_utils, it, this
+from ibis_typing.fixtures.expressions import EvaluateTable, FetchTable
 from ibis_typing.ibis_utils import Aggregate
 from ibis_typing.partitioning import (
     ByNumberOfBuckets,
@@ -25,7 +28,7 @@ def test_by_buckets_partition_policy():
     assert actual == expected
 
 
-def test_partition_columns_creates_correct_partitions(fetch_table):
+def test_partition_columns_creates_correct_partitions(fetch_table: FetchTable):
     rows = [
         SimpleSchema(id=0, value=2),
         SimpleSchema(id=1, value=3),
@@ -46,12 +49,13 @@ def test_partition_columns_creates_correct_partitions(fetch_table):
     assert actual == expected
 
 
-def test_PartitionedColumns_preserves_schema(evaluate_table):
+def test_PartitionedColumns_preserves_schema(evaluate_table: EvaluateTable):
     @frozen
     class Transform(SimpleSchema, Expression):
         const: it.Int64
 
         @classmethod
+        @override
         def from_expression(cls, inputs: IbisTable[SimpleSchema]):
             cols = inputs.cols
 

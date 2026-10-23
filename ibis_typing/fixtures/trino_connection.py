@@ -15,7 +15,7 @@ TRINO_PORT = 8080
 
 
 @pytest.fixture(scope="session")
-def trino_connection(trino_session_container) -> IbisConnection:
+def trino_connection(trino_session_container: DockerContainer) -> IbisConnection:
     host, port = get_container_host_port(trino_session_container, TRINO_PORT)
 
     (con := trino.Backend()).do_connect(
@@ -62,7 +62,9 @@ def wait_for_ibis_connection(connection: IbisConnection, timeout_s: float) -> No
     raise TimeoutError(f"SQL server did not start in {timeout_s} seconds")
 
 
-def get_container_host_port(trino_container: DockerContainer, port) -> tuple[str, int]:
+def get_container_host_port(
+    trino_container: DockerContainer, port: int
+) -> tuple[str, int]:
     if tc_host := os.environ.get("TESTCONTAINERS_HOST_OVERRIDE"):
         os.environ["TC_HOST"] = tc_host
 

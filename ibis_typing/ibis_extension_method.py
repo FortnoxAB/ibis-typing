@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import abc
 from collections.abc import Sequence
+from typing import override
 
 from attrs import frozen
 from ibis import Table, Value
@@ -19,7 +20,7 @@ class TableMethod(ExtensionMethod[Table, Table], abc.ABC):
     @abc.abstractmethod
     def apply(self, table: Table) -> Table: ...
 
-    def __rmatmul__(self, other):
+    def __rmatmul__(self, other: Table) -> Table:
         return self.apply(other)
 
     def as_expression_schema(
@@ -31,19 +32,20 @@ class TableMethod(ExtensionMethod[Table, Table], abc.ABC):
 
 
 @frozen
-class TableMethodExpression(SingleInputTableExpression):
+class TableMethodExpression[S: IbisSchema](SingleInputTableExpression[S]):
     """Upgrades a TableMethod to a GenericExpression schema."""
 
     method: TableMethod
     preserves_schema: bool = False
 
     @property
+    @override
     def output_schema(self):
         if not self.preserves_schema:
             return None
         return self.origin
 
-    def __call__(self, origin: IbisTable) -> Table:
+    def __call__(self, origin: IbisTable[S]) -> Table:
         return origin.table @ self.method
 
 
@@ -60,6 +62,7 @@ class ValueMethod[T: Value, R: Value](ExtensionMethod[T, R], abc.ABC):
 class SelfMethod[T: Value](ValueMethod[T, T], abc.ABC):
     """T @ SelfMethod() -> T."""
 
+    @override
     def __rmatmul__[V: Value](self: SelfMethod[V], other: V) -> V:
         return self.apply(other)
 

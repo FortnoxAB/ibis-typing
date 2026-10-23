@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Protocol, Self
+from typing import Any, Protocol, Self, override
 
 import attrs
 import humanize
@@ -39,7 +39,7 @@ class TableStore(TableProvider, Protocol):
     def __contains__(self, schema: type[IbisSchema]) -> bool:
         """Query if table exists in store."""
 
-    def write_table(self, table: IbisTable) -> None:
+    def write_table(self, table: IbisTable[IbisSchema]) -> None:
         """Write table to store."""
 
 
@@ -47,13 +47,13 @@ class TableStore(TableProvider, Protocol):
 class NullTableStore(TableStore):
     """/dev/null variant of Table Store."""
 
-    def __call__(self, schema):
+    def __call__[S: IbisSchema](self, schema: type[S]) -> IbisTable[S] | None:
         return None
 
-    def __contains__(self, schema):
+    def __contains__(self, schema: type[IbisSchema]) -> bool:
         return False
 
-    def write_table(self, table) -> None:
+    def write_table(self, table: IbisTable[IbisSchema]) -> None:
         return
 
 
@@ -73,10 +73,10 @@ class LocalTableStore(TableStore, ABC):
         """Implementation of table read for schema file Path glob."""
 
     @abstractmethod
-    def _write_table(self, table: IbisTable, path: Path) -> None:
+    def _write_table(self, table: IbisTable[IbisSchema], path: Path) -> None:
         """Implementation of table write into schema directory."""
 
-    def __call__(self, schema):
+    def __call__[S: IbisSchema](self, schema: type[S]) -> IbisTable[S] | None:
         if schema not in self:
             return None
 
@@ -91,7 +91,7 @@ class LocalTableStore(TableStore, ABC):
     def _rglob(self) -> str:
         return f"**/*.{self._file_suffix}"
 
-    def write_table(self, table: IbisTable) -> None:
+    def write_table(self, table: IbisTable[IbisSchema]) -> None:
         with self.tmp_store() as tmp_store:
             path = tmp_store.get_table_path(table.table_schema)
             tmp_store._write_table(table, path)
@@ -174,7 +174,7 @@ class ParquetTableStore(LocalTableStore):
         table = self.connection.read_parquet(glob, schema)
         return force_cast_table(table)
 
-    def _write_table(self, table: IbisTable, path: Path) -> None:
+    def _write_table(self, table: IbisTable[IbisSchema], path: Path) -> None:
         # Note: Force DB backend to write as correct types as possible.
         table = force_cast_table(table)
         # Note: DuckDB specific
@@ -188,7 +188,8 @@ class ParquetTableStore(LocalTableStore):
         else:
             self.connection.write_parquet(table, path, **kwargs)
 
-    def write_table(self, table: IbisTable) -> None:
+    @override
+    def write_table(self, table: IbisTable[IbisSchema]) -> None:
         super().write_table(table)
 
 

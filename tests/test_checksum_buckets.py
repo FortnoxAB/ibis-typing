@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from attrs import frozen
 
 from ibis_typing import IbisSchema, it
@@ -7,6 +9,7 @@ from ibis_typing.checksum_buckets import (
     ChecksumBuckets,
     ChecksumParams,
 )
+from ibis_typing.fixtures.expressions import EvaluateTable
 from ibis_typing.utils import StrDate
 
 
@@ -26,7 +29,9 @@ class InputChecksumBuckets(ChecksumBuckets):
 
 
 def test_ChecksumBuckets_hashes_inputs_into_groups(
-    fix_ibis_time, ibis_dialect, evaluate_table
+    fix_ibis_time: Callable[[StrDate], None],
+    ibis_dialect: str,
+    evaluate_table: EvaluateTable,
 ):
     now = StrDate("2021-01-01")
     fix_ibis_time(now)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from pathlib import Path
+from typing import Any
 
 import ibis
 from attrs import field, frozen
@@ -27,14 +28,16 @@ class IbisConnection:
         return expr @ EvaluateExpr(self.connection)
 
     def read_parquet[S: IbisSchema](
-        self, path: Path, /, cls: type[S], **kwargs
+        self, path: Path, /, cls: type[S], **kwargs: Any
     ) -> IbisTable[S]:
         name = f"{cls.__name__}__{utils.short_hash(path.as_posix())}"
         table = self.connection.read_parquet(path, table_name=name, **kwargs)
         table = table.select(*cls.table_schema)
         return cls.of(table)
 
-    def write_parquet(self, table: IbisTable, /, path: Path, **kwargs) -> None:
+    def write_parquet(
+        self, table: IbisTable[IbisSchema], /, path: Path, **kwargs: Any
+    ) -> None:
         self.connection.to_parquet(table.table, path, **kwargs)
 
     @property

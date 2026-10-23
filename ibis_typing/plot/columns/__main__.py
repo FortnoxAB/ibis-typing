@@ -7,7 +7,7 @@ from ibis_typing.expression import Expression
 from ibis_typing.plot import graph
 
 
-def main(argv=None) -> None:
+def main(argv: Sequence[str] | None = None) -> None:
     args = parse_args(argv)
 
     dag_structure = graph.get_expression_dag(args.tables)
@@ -33,7 +33,7 @@ class Params:
     show_all: bool | None = None
 
 
-def parse_args(argv=None) -> Params:
+def parse_args(argv: Sequence[str] | None = None) -> Params:
     parser = argparse.ArgumentParser(description=__doc__)
     arg = parser.add_argument
 

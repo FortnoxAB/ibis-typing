@@ -23,7 +23,7 @@ class SetAttr(MonkeyPatch):  # type: ignore
         self,
         target: Any,
         name: object,
-        value=...,
+        value: object = ...,
         raising: bool = True,
     ) -> None: ...
 
@@ -41,13 +41,13 @@ class DelAttr(MonkeyPatch):  # type: ignore
     def delattr(  # type: ignore
         self,
         target: Any,
-        name=...,
+        name: str | object = ...,
         raising: bool = True,
     ) -> None: ...
 
     def delattr(
         self,
         target: object | str,
-        name=...,
+        name: str | object = ...,
         raising: bool = True,
     ) -> None: ...

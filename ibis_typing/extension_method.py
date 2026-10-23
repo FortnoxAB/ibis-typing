@@ -22,7 +22,7 @@ class Deferred[I, O](ExtensionMethod[I, O]):
     Store all attribute accesses and calls for later chained application.
     """
 
-    _chain: Sequence[ExtensionMethod] = ()
+    _chain: Sequence[ExtensionMethod[Any, Any]] = ()
 
     def __rmatmul__(self, other: I) -> O:
         """Apply all deferred calls on `other @ self` invocation.
@@ -40,13 +40,13 @@ class Deferred[I, O](ExtensionMethod[I, O]):
         """
         return attrs.evolve(self, chain=(*self._chain, other))  # type: ignore
 
-    def __call__(self, *args, **kwargs) -> Deferred[I, Any]:
+    def __call__(self, *args: Any, **kwargs: Any) -> Deferred[I, Any]:
         return self @ Call(args, kwargs)
 
     def __getattr__(self, name: str) -> Deferred[I, Any]:
         return self @ GetAttr(name)
 
-    def __getitem__(self, item) -> Deferred[I, Any]:
+    def __getitem__(self, item: Any) -> Deferred[I, Any]:
         return self @ GetItem(item)
 
     def __repr__(self):
@@ -55,13 +55,13 @@ class Deferred[I, O](ExtensionMethod[I, O]):
 
 
 @frozen(repr=False)
-class Call(ExtensionMethod):
+class Call(ExtensionMethod[Any, Any]):
     """Deferred __call__ call."""
 
-    args: tuple
-    kwargs: Mapping
+    args: tuple[Any, ...]
+    kwargs: Mapping[str, Any]
 
-    def __rmatmul__(self, other):
+    def __rmatmul__(self, other: Any) -> Any:
         return other(*self.args, **self.kwargs)
 
     def __repr__(self):
@@ -72,12 +72,12 @@ class Call(ExtensionMethod):
 
 
 @frozen(repr=False)
-class GetAttr(ExtensionMethod):
+class GetAttr(ExtensionMethod[Any, Any]):
     """Deferred __getattr__ call."""
 
     name: str
 
-    def __rmatmul__(self, other):
+    def __rmatmul__(self, other: Any) -> Any:
         return getattr(other, self.name)
 
     def __repr__(self):
@@ -85,12 +85,12 @@ class GetAttr(ExtensionMethod):
 
 
 @frozen(repr=False)
-class GetItem(ExtensionMethod):
+class GetItem(ExtensionMethod[Any, Any]):
     """Deferred __getitem__ call."""
 
     item: Any
 
-    def __rmatmul__(self, other):
+    def __rmatmul__(self, other: Any) -> Any:
         return other[self.item]
 
     def __repr__(self):

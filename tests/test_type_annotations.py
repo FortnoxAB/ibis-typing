@@ -13,6 +13,7 @@ from hypothesis import given
 from ibis import ir, literal
 
 from ibis_typing import IbisSchema, it, this
+from ibis_typing.fixtures.expressions import FetchTable
 from ibis_typing.hypothesis import strategy_for
 from ibis_typing.ibis_adapter import IbisDbSchema
 from ibis_typing.ibis_api import Desc
@@ -55,7 +56,7 @@ class CollectionSchema(IbisSchema):
 
 @exhaustive
 @given(strategy_for(SimpleSchema))
-def test_simple_column_typing(fetch_table, data):
+def test_simple_column_typing(fetch_table: FetchTable, data: SimpleSchema):
     inputs = SimpleSchema.of_rows([data])
     actual = fetch_table(inputs)
     assert actual

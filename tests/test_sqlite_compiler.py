@@ -27,7 +27,9 @@ def sqlite_connection() -> IbisConnection:
     ],
     ids=["empty", "non_empty"],
 )
-def test_sqlite_literal_table_of_rows(sqlite_connection, rows):
+def test_sqlite_literal_table_of_rows(
+    sqlite_connection: IbisConnection, rows: list[SQLiteSchema]
+):
     expected = rows
     actual = list(sqlite_connection.fetch_table(SQLiteSchema.of_rows(rows)))
     assert actual == expected

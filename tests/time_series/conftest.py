@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import random
-from collections.abc import Callable, Sequence
-from typing import Any
+from collections.abc import Sequence
+from typing import Any, Protocol
 
 import pytest
 
@@ -12,8 +12,19 @@ from ibis_typing.time_series.features import TimeSeriesFeature
 from tests.time_series.series import Point, Value, extraction, oldest_first, series
 
 
+class Trailing(Protocol):
+    def __call__(
+        self,
+        values: Sequence[Value],
+        feature: TimeSeriesFeature,
+        *,
+        window_size: int,
+        sampling_frequency: float = 1.0,
+    ) -> list[Any]: ...
+
+
 @pytest.fixture
-def trailing(evaluate_expr: EvaluateExpr) -> Callable[..., list[Any]]:
+def trailing(evaluate_expr: EvaluateExpr) -> Trailing:
     def run(
         values: Sequence[Value],
         feature: TimeSeriesFeature,

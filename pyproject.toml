@@ -207,4 +207,9 @@ check-script = true
 cache-dir = ".complexipy_cache"
 
 [tool.pyrefly]
-preset = "default"
+preset = "strict"
+
+[[tool.pyrefly.sub-config]]
+# Patch templates are copied into ibis source, where `override` is not imported.
+matches = "ibis_typing/type_patch/**"
+errors = { missing-override-decorator = false }

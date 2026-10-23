@@ -4,9 +4,10 @@ import abc
 import functools
 import operator
 from collections.abc import Sequence
-from typing import ClassVar
+from typing import Any, ClassVar, override
 
 from attrs import frozen
+from ibis import Table
 
 from . import ibis_types as it
 from .expression import (
@@ -67,6 +68,7 @@ class BucketedInputsExpression(IncrementalExpression, abc.ABC):
     incremental_params: ClassVar[BucketedInputsParams]
 
     @classmethod
+    @override
     def get_parameter_schema_types(cls):
         # Replace plain IbisTable[Inputs] with IbisTable[BucketedInputs] variant.
         params = super().get_parameter_schema_types()
@@ -87,10 +89,13 @@ class ChecksumBucketsTableExpression(TableExpression):
     params: ChecksumParams
 
     @property
+    @override
     def input_schemas(self):
         return {"inputs": self.params.inputs, "timestamp": TimestampNow}
 
-    def __call__(self, inputs: IbisTable, timestamp: IbisTable[TimestampNow]):
+    def __call__(
+        self, inputs: IbisTable[IbisSchema], timestamp: IbisTable[TimestampNow]
+    ) -> Table:
         args = self.params
         checksums = [
             this[col_name] @ ColumnChecksum()
@@ -146,17 +151,18 @@ class ChecksumBuckets(IncrementalExpression, GenericExpression):
         return cls.of(table)
 
 
+# The increment schema is generated at runtime, and stands in for the requested schema.
 @frozen
-class AsIncrementedBuckets(ExpressionMethod):
+class AsIncrementedBuckets(ExpressionMethod[ChecksumBuckets, Any]):
     target: type[IncrementalExpression]
 
-    def apply(self, schema):
+    def apply(self, schema: type[ChecksumBuckets]) -> TableExpression:
         return ChecksumBucketsIncrementTableExpression(schema, self.target)
 
 
 @frozen
-class AsBucketedInputs(ExpressionMethod):
-    def apply(self, schema):
+class AsBucketedInputs(ExpressionMethod[ChecksumBuckets, GenericExpression]):
+    def apply(self, schema: type[ChecksumBuckets]) -> TableExpression:
         return BucketedInputsTableExpression(schema)
 
 
@@ -166,10 +172,13 @@ class ChecksumBucketsIncrementTableExpression(TableExpression):
     target: type[IncrementalExpression]
 
     @property
+    @override
     def input_schemas(self):
         return {"buckets": self.buckets, "target": self.target}
 
-    def __call__(self, buckets: IbisTable, target: IbisTable):
+    def __call__(
+        self, buckets: IbisTable[ChecksumBuckets], target: IbisTable[IbisSchema]
+    ) -> Table:
         target_updated_at = self.target.incremental_params.updated_at_col
         bucket_updated_at = self.buckets.incremental_params.updated_at_col
 
@@ -178,6 +187,7 @@ class ChecksumBucketsIncrementTableExpression(TableExpression):
         return buckets.table.filter(is_updated)
 
     @property
+    @override
     def generated_class_name(self) -> str:
         return f"{self.buckets.__name__}Increment"
 
@@ -187,11 +197,14 @@ class BucketedInputsTableExpression(TableExpression):
     buckets: type[ChecksumBuckets]
 
     @property
+    @override
     def input_schemas(self):
         inputs = self.buckets.incremental_params.inputs
         return {"buckets": self.buckets, "inputs": inputs}
 
-    def __call__(self, buckets: IbisTable, inputs: IbisTable):
+    def __call__(
+        self, buckets: IbisTable[ChecksumBuckets], inputs: IbisTable[IbisSchema]
+    ) -> Table:
         args = self.buckets.incremental_params
         return (
             buckets.table
@@ -203,6 +216,7 @@ class BucketedInputsTableExpression(TableExpression):
         )
 
     @property
+    @override
     def generated_class_name(self) -> str:
         inputs = self.buckets.incremental_params.inputs
         return f"{inputs.__name__}BucketedInputs"

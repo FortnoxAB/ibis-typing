@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, override
 
 import cattrs
 import pytest
@@ -11,11 +11,12 @@ from ibis_typing import (
     it,
     this,
 )
+from ibis_typing.fixtures.expressions import EvaluateExpr, FetchTable
 from ibis_typing.ibis_utils import Aggregate, Select
 from tests.conftest import SimpleSchema
 
 
-def test_select_cols(fetch_table, evaluate_expr):
+def test_select_cols(fetch_table: FetchTable, evaluate_expr: EvaluateExpr):
     @frozen
     class SelectCols(IbisSchema):
         id: it.Int64 = None
@@ -43,7 +44,7 @@ def test_select_cols(fetch_table, evaluate_expr):
 
 
 @pytest.mark.parametrize("selected_cols", [[SimpleSchema.cols.id], []])
-def test_select_expr(fetch_table, selected_cols):
+def test_select_expr(fetch_table: FetchTable, selected_cols: list[it.NameOrType]):
     @frozen
     class SelectExpr(SimpleSchema):
         add_one: it.Int64
@@ -70,7 +71,7 @@ def test_select_expr(fetch_table, selected_cols):
     assert actual == expected
 
 
-def test_aggregate(fetch_table):
+def test_aggregate(fetch_table: FetchTable):
     @frozen
     class AggInputs(IbisSchema):
         id: it.Int64
@@ -82,8 +83,9 @@ def test_aggregate(fetch_table):
     class AggExpr(AggInputs):
         count: it.Int64
 
-    class AnyOf(Any, list):  # noqa: PLW1641
-        def __eq__(self, other):
+    class AnyOf(Any, list[Any]):  # noqa: PLW1641
+        @override
+        def __eq__(self, other: object) -> bool:
             return other in self
 
     rows = [
@@ -120,7 +122,7 @@ class ArraySchema(IbisSchema):
     array: it.Array[it.Int64]
 
 
-def test_fill_nulls(fetch_table):
+def test_fill_nulls(fetch_table: FetchTable):
     rows = [
         ArraySchema(id=0, value=None, array=[0, 0]),
         ArraySchema(id=1, value=1, array=None),

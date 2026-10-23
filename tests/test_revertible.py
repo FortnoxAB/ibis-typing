@@ -4,10 +4,11 @@ from typing import ClassVar
 from attrs import frozen
 
 from ibis_typing import IbisSchema, evaluator, it, revertible
+from ibis_typing.fixtures.expressions import FetchTable
 from ibis_typing.revertible import AsRevertible, ExpressionExport, UUIDToStringExport
 
 
-def test_uuid_to_string_export_lifecycle(fetch_table):
+def test_uuid_to_string_export_lifecycle(fetch_table: FetchTable):
     @frozen
     class BaseSchema(IbisSchema):
         val: it.UUID = None

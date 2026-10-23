@@ -9,7 +9,7 @@ from typing import cast
 import ibis
 from attrs import frozen
 
-from ibis_typing import Expression, IbisSchema, IbisTable, evaluator
+from ibis_typing import Expression, IbisDbSchema, IbisSchema, IbisTable, evaluator
 from ibis_typing.checksum_buckets import (
     AsIncrementedBuckets,
     ChecksumBuckets,
@@ -60,15 +60,18 @@ class DbtBucketProvider(TableProvider):
     expr: type[Expression]
     table_provider: DbtRefTableProvider
 
-    def __call__(self, schema):
+    def __call__[S: IbisSchema](self, schema: type[S]) -> IbisTable[S] | None:
         if not issubclass(schema, ChecksumBuckets):
             return None
 
         assert issubclass(self.expr, IncrementalExpression)
-        return construct_dbt_model(
-            schema @ AsIncrementedBuckets(self.expr),
-            self.table_provider,
-            self=self.expr,
+        return cast(
+            IbisTable[S],
+            construct_dbt_model(
+                schema @ AsIncrementedBuckets(self.expr),
+                self.table_provider,
+                self=self.expr,
+            ),
         )
 
 
@@ -90,8 +93,8 @@ class DbtSelfRefProvider(TableProvider):
 class DbtRefTableProvider(TableProvider):
     """Provide tables with DBT token names for compiling DBT SQL."""
 
-    model_lookup: Mapping[type[Expression], DbtModel]
-    source_lookup: Mapping[type[IbisSchema], DbtSource]
+    model_lookup: Mapping[type[Expression], DbtModel[Expression]]
+    source_lookup: Mapping[type[IbisSchema], DbtSource[IbisDbSchema]]
 
     REF_TOKEN = "__dbt_ref__"
     SRC_TOKEN = "__dbt_src__"

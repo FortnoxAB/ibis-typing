@@ -6,7 +6,7 @@ import html
 import importlib
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 
 import graphviz
 import networkx as nx
@@ -78,20 +78,22 @@ def _add_dependencies(
 def filter_dag_on_column(
     start_node: type[Expression], dag: ExpressionInputs, column: str
 ) -> ExpressionInputs:
-    found = defaultdict(list)
+    found: ExpressionInputs = defaultdict(list)
 
-    def recurse(search_next):
+    def recurse(search_next: type[Expression]) -> None:
         for node in dag[search_next]:
             schema = getattr(node, "table_schema", None)
             if schema and column in schema:
                 found[search_next].append(node)
-                recurse(node)
+                # Only Expressions have inputs to search.
+                if issubclass(node, Expression):
+                    recurse(node)
 
     recurse(start_node)
     return found
 
 
-def create_graph(data: ExpressionInputs) -> nx.DiGraph:
+def create_graph(data: ExpressionInputs) -> nx.DiGraph[str]:
     dag = nx.DiGraph()
     for target, sources in data.items():
         target_schema = getattr(target, "table_schema", {})
@@ -110,7 +112,7 @@ def create_graph(data: ExpressionInputs) -> nx.DiGraph:
 
 
 class ColorProvider(Protocol):
-    def __call__(self, graph: nx.DiGraph) -> Sequence[str]: ...
+    def __call__(self, graph: nx.DiGraph[str]) -> Sequence[str]: ...
 
 
 @frozen
@@ -121,10 +123,10 @@ class NodeColors(ColorProvider):
     start: str = "lightcoral"
     end: str = "green"
 
-    def __call__(self, graph):
+    def __call__(self, graph: nx.DiGraph[str]) -> Sequence[str]:
         return [self.color(node, graph) for node in graph.nodes]
 
-    def color(self, node: Any, graph: nx.DiGraph) -> str:
+    def color(self, node: Any, graph: nx.DiGraph[str]) -> str:
         if graph.in_degree[node] == 0:
             return self.start
         if graph.out_degree[node] == 0:
@@ -182,10 +184,10 @@ class ColumnColorProvider:
 
 
 def draw_dag(
-    graph: nx.DiGraph,
+    graph: nx.DiGraph[str],
     *,
     colors: ColorProvider = NodeColors(),
-    title="Dataflow DAG",
+    title: str = "Dataflow DAG",
 ) -> Figure:
     fig = plt.figure(figsize=(28.0, 12.0))
     ax = fig.add_subplot()
@@ -209,15 +211,17 @@ def draw_dag(
 
 
 def view_dag_with_columns(
-    graph: nx.DiGraph,
+    graph: nx.DiGraph[str],
     *,
     colors: ColumnColorProvider,
     title: str = "Dataflow DAG",
     columns_to_show: list[str] | None = None,
 ) -> None:
     s = graphviz.Digraph(title, node_attr={"shape": "plaintext"})
-    for node, node_schema in graph.nodes(data="schema", default={}):
+    for node, node_data in graph.nodes(data="schema", default={}):
         node_name = str(node)
+        # The graph node data is untyped; `create_graph` sets the table schema.
+        node_schema = cast(dict[str, str], node_data)
         node_html = (
             GraphvizHtml.header_only(node_name)
             if graph.in_degree[node] == 0

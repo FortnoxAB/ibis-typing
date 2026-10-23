@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import datetime
-from typing import Self, cast
+from typing import Self, cast, override
 
 import ibis
 from attrs import frozen
@@ -30,6 +30,7 @@ class TimestampNow(Expression):
     }
 
     @classmethod
+    @override
     def from_expression(cls):
         return cls.as_of()
 

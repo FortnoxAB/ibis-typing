@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 from collections.abc import Sequence
-from typing import ClassVar
+from typing import ClassVar, override
 
 import libcst
 from attr import dataclass
@@ -31,9 +31,11 @@ class IbisTransformer(libcst.CSTTransformer):
             else self.import_line or ""
         )
 
+    @override
     def visit_Module(self, node: libcst.Module):
         self._changed = False
 
+    @override
     def leave_Call(
         self, original_node: libcst.Call, updated_node: libcst.Call
     ) -> libcst.BaseExpression:
@@ -44,6 +46,7 @@ class IbisTransformer(libcst.CSTTransformer):
 
         return updated_node
 
+    @override
     def leave_Module(
         self, original_node: libcst.Module, updated_node: libcst.Module
     ) -> libcst.Module:

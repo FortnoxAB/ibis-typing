@@ -7,7 +7,7 @@ import hashlib
 from collections import UserDict
 from collections.abc import Callable, Iterable, Mapping, MutableMapping
 from types import MethodType
-from typing import Any, Self, cast
+from typing import Any, Self, cast, override
 
 from attrs import frozen
 
@@ -95,7 +95,7 @@ class StrDate(str):
         diff_months = self.date.month - date.date.month
         return diff_year * 12 + diff_months
 
-    def minus(self, days) -> Self:
+    def minus(self, days: int) -> Self:
         return self.plus(-days)
 
     def since(self, other: StrDate) -> int:
@@ -105,7 +105,8 @@ class StrDate(str):
     def month_start(self) -> Self:
         return type(self)(self.datetime.replace(day=1).date())
 
-    def __eq__(self, other):
+    @override
+    def __eq__(self, other: object) -> bool:
         match other:
             case StrDate():
                 return self.datetime == other.datetime
@@ -119,7 +120,7 @@ class StrDate(str):
 
 
 def group_by[T, K](
-    iterable: Iterable[T], *, key: Callable[[T], K], drop_none_keys=False
+    iterable: Iterable[T], *, key: Callable[[T], K], drop_none_keys: bool = False
 ) -> dict[K, list[T]]:
     """Group iterable by a key function, not requiring it to be sorted.
 
@@ -144,7 +145,7 @@ def group_by_type[T](iterable: Iterable[T]) -> MapByType[T]:
     return group_by(iterable, key=lambda entry: entry.__class__)
 
 
-class BoxedDict(UserDict, Mapping[str, str]):
+class BoxedDict(UserDict[str, str], Mapping[str, str]):
     """A dictionary that allows attribute access to its keys.
 
     >>> d = BoxedDict({"a": "b"})
@@ -152,7 +153,7 @@ class BoxedDict(UserDict, Mapping[str, str]):
     'b'
     """
 
-    def __getattr__(self, item):
+    def __getattr__(self, item: str) -> str:
         try:
             return self[item]
         except LookupError as e:
@@ -184,7 +185,8 @@ class ApproxFloat(float):  # noqa: PLW1641
     e: float = 0.05  # > 0
     abs_e: float = 0.001  # > 0
 
-    def __eq__(self, other):
+    @override
+    def __eq__(self, other: Any) -> bool:
         numerator = (self.number - other) ** 2  # > 0
         denominator = abs(self.number * other) or self.abs_e**2  # > 0
         threshold = self.e**2

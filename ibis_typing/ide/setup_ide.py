@@ -4,6 +4,7 @@ import argparse
 import logging
 import shutil
 import subprocess
+from collections.abc import Sequence
 from functools import lru_cache
 from pathlib import Path
 
@@ -43,7 +44,7 @@ class TemplatePaths:
         return self.repo_root / ".git"
 
 
-def main(argv=None):
+def main(argv: Sequence[str] | None = None):
     args = parse_args(argv)
     paths = TemplatePaths()
 
@@ -52,7 +53,7 @@ def main(argv=None):
         merge_dirs(source, target, update_templates=args.update_templates)
 
 
-def parse_args(argv=None):
+def parse_args(argv: Sequence[str] | None = None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--update-templates", action="store_true")
     return parser.parse_args(argv)

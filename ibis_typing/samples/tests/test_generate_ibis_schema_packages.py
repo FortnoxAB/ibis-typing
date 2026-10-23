@@ -4,11 +4,11 @@ from ibis_typing import samples, schema_writer
 from ibis_typing.samples.generated import sample_schemas
 
 
-def test_update_expected_is_false_by_default(update_expected):
+def test_update_expected_is_false_by_default(update_expected: bool):
     assert update_expected is False
 
 
-def test_generate_ibis_expression_schema_packages(update_expected):
+def test_generate_ibis_expression_schema_packages(update_expected: bool):
     expr_schema_pkgs = {
         samples: sample_schemas,
     }

@@ -3,8 +3,8 @@ from __future__ import annotations
 import abc
 import functools
 import typing
-from collections.abc import Mapping
-from typing import cast
+from collections.abc import Callable, Mapping
+from typing import TYPE_CHECKING, Any, Self, cast, override
 
 import attrs
 import ibis
@@ -22,10 +22,15 @@ class Expression(IbisSchema, abc.ABC):
     This is essentially injected default arguments in a function signature.
     """
 
-    @classmethod
-    @abc.abstractmethod
-    def from_expression[T: Expression](cls: type[T], *args, **kwargs) -> IbisTable[T]:
-        """Compose the ibis.Table for the (IbisTable, ...) -> IbisTable transform."""
+    if TYPE_CHECKING:
+        # Subclasses declare their own typed input tables as parameters.
+        from_expression: Callable[..., IbisTable[Self]]
+    else:
+
+        @classmethod
+        @abc.abstractmethod
+        def from_expression(cls, *args, **kwargs):
+            """Compose the ibis.Table for the (IbisTable, ...) -> IbisTable transform."""
 
     @classmethod
     def get_parameter_schema_types(cls) -> Mapping[str, type[IbisSchema]]:
@@ -33,6 +38,7 @@ class Expression(IbisSchema, abc.ABC):
         return get_parameter_schema_types(cls.from_expression)
 
     @classmethod
+    @override
     def _get_table_schema(cls) -> Mapping[str, str]:
         """Generate the ibis schema for the expression."""
         return generate_table_schema(
@@ -50,8 +56,9 @@ class GenericExpression(Expression, abc.ABC):
         ...
 
     @classmethod
+    @override
     def from_expression[S: GenericExpression](
-        cls: type[S], *args, **kwargs
+        cls: type[S], *args: Any, **kwargs: Any
     ) -> IbisTable[S]:
         expr = cls.get_table_expression()
         table = expr(*args, **kwargs)
@@ -59,6 +66,7 @@ class GenericExpression(Expression, abc.ABC):
         return schema.of(table)
 
     @classmethod
+    @override
     def get_parameter_schema_types(cls) -> Mapping[str, type[IbisSchema]]:
         return cls.get_table_expression().input_schemas
 
@@ -68,7 +76,7 @@ class TableExpression(abc.ABC):
     """Describes a generalized ibis.Table expression function."""
 
     @abc.abstractmethod
-    def __call__(self, *args, **kwargs) -> ibis.Table:
+    def __call__(self, *args: Any, **kwargs: Any) -> ibis.Table:
         """A typed IbisTable -> ibis.Table transform.
 
         BoundIbisExpression wraps the output as an IbisTable.
@@ -112,25 +120,32 @@ class SingleInputTableExpression[S: IbisSchema](TableExpression, abc.ABC):
     origin: type[S]
 
     @property
-    def input_schemas(self):
+    @override
+    def input_schemas(self) -> Mapping[str, type[IbisSchema]]:
         return {"origin": self.origin}
 
 
 @frozen
-class IdentityTableExpression(SingleInputTableExpression, abc.ABC):
+class IdentityTableExpression[S: IbisSchema](SingleInputTableExpression[S], abc.ABC):
     @property
-    def output_schema(self):
+    @override
+    def output_schema(self) -> type[S]:
         return self.origin
 
 
-def generate_table_schema(from_expression, schemas) -> dict[str, str]:
+def generate_table_schema(
+    from_expression: Callable[..., IbisTable[Any] | ibis.Table],
+    schemas: Mapping[str, type[IbisSchema]],
+) -> dict[str, str]:
     inputs = {name: get_abstract_table(schema) for name, schema in schemas.items()}
     ret = from_expression(**inputs)
     table = ret.table if isinstance(ret, IbisTable) else ret
     return {column: str(ibis_type) for column, ibis_type in table.schema().items()}
 
 
-def get_parameter_schema_types(fun: typing.Callable) -> Mapping[str, type[IbisSchema]]:
+def get_parameter_schema_types(
+    fun: Callable[..., Any],
+) -> Mapping[str, type[IbisSchema]]:
     """Get the IbisSchema types from the function signature.
 
     >>> from ibis_typing import IbisTable, IbisSchema
