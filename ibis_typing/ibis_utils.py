@@ -131,8 +131,8 @@ def aggregate(  # noqa: PLR0913 # Too many arguments in function definition (6 >
         *(col for col in cols if col in out_cols),
         *(col for col in exprs if col not in cols),
     ]
-    values = {str(col): exprs[col] for col in order}
-    return table.aggregate(by=by, **values)  # ty:ignore[no-matching-overload]
+    metrics = [exprs[col].name(str(col)) for col in order]
+    return table.aggregate(metrics, by=list(by))
 
 
 @overload

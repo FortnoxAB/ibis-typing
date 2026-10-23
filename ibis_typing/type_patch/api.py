@@ -26,11 +26,17 @@ def get_patchers():
 
 
 @overload
-def desc(expr: it.NameOrTypeOrValue, /, *, nulls_first: bool = False) -> ir.Value: ...  # type: ignore
+def desc[T: ir.Value](expr: T, /, *, nulls_first: bool = False) -> T: ...
+@overload
+def desc(expr: it.NameOrType, /, *, nulls_first: bool = False) -> ir.Value: ...
 def desc(expr, /, *, nulls_first: bool = False) -> ir.Value:
     return ibis.desc(expr, nulls_first=nulls_first)
 
 
+@overload
+def ifelse[V: Value](condition: Any, true_expr: V, false_expr: ir.NullValue) -> V: ...
+@overload
+def ifelse[V: Value](condition: Any, true_expr: ir.NullValue, false_expr: V) -> V: ...
 @overload
 def ifelse[V: Value](condition: Any, true_expr: V, false_expr: V) -> V: ...
 @overload

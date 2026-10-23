@@ -22,7 +22,7 @@ class DbtSnapshot[E: DbtSnapshotAbstract](DbtModel):
     """Integration mark-up for DBT snapshot function."""
 
     expr: type[E]
-    config: SnapshotConfig
+    config: SnapshotConfig  # pyrefly: ignore[bad-override]
 
 
 class DbtSnapshotAbstract(GenericExpression):

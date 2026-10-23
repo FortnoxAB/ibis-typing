@@ -9,14 +9,13 @@ from __future__ import annotations
 
 import math
 from collections.abc import Callable, Mapping, Sequence
-from typing import cast
 
 import ibis
 from ibis import Table, ir
 
 from .. import ibis_ops
-from ..ibis_api import IfElse
 from ..ibis_utils import Aggregate
+from ..ibis_values import NullUnless
 from .features import PointFeature, Points, SpectralFeature, Spectrum, TimeSeriesFeature
 
 __all__ = [
@@ -67,22 +66,6 @@ def previous_values_column(column: str) -> str:
     return f"__ts_previous_values__{column}"
 
 
-def _floating(table: Table, name: str) -> ir.FloatingColumn:
-    column: ir.Column = table[name]
-    return cast(ir.FloatingColumn, column)
-
-
-def _integer(table: Table, name: str) -> ir.IntegerColumn:
-    column: ir.Column = table[name]
-    return cast(ir.IntegerColumn, column)
-
-
-def _null_unless(condition: ir.BooleanValue, value: ir.Value) -> ir.Value:
-    """`value` where `condition` holds, otherwise null of the same type."""
-    null: ir.Value = ibis.null(value.type())
-    return condition @ IfElse(value, null)
-
-
 def prepare(
     table: Table,
     *,
@@ -105,7 +88,8 @@ def prepare(
         return prepared
     return prepared.mutate(
         **{
-            previous_values_column(column): _floating(prepared, value_column(column))
+            previous_values_column(column): prepared[value_column(column)]
+            .cast(float)
             .lag()
             .over(series)
             for column in columns
@@ -123,7 +107,7 @@ def window_features(  # noqa: PLR0913
     naming: Naming,
 ) -> Mapping[str, ir.Value]:
     """Windowable point features of each row's trailing window, as SQL windows."""
-    position = _integer(table, POSITION)
+    position = table[POSITION].cast(int)
     complete = position >= ibis.literal(window_size - 1)
     frame = ibis.window(
         group_by=list(keys),
@@ -140,19 +124,21 @@ def window_features(  # noqa: PLR0913
     )
 
     def value(column: str, feature: PointFeature) -> ir.Value:
-        values = _floating(table, value_column(column))
+        values = table[value_column(column)].cast(float)
         if feature.uses_lag:
             points = Points(
                 values=values,
                 window_size=window_size,
                 feature=feature,
-                previous_values_column=_floating(table, previous_values_column(column)),
+                previous_values_column=table[previous_values_column(column)].cast(
+                    float
+                ),
             )
             if window_size == 1:
                 return ibis.null(feature.reduce(points).type())
-            return _null_unless(complete, feature.reduce(points).over(lag_frame))
+            return feature.reduce(points).over(lag_frame) @ NullUnless(complete)
         points = Points(values=values, window_size=window_size, feature=feature)
-        return _null_unless(complete, feature.reduce(points).over(frame))
+        return feature.reduce(points).over(frame) @ NullUnless(complete)
 
     return {
         naming(column, feature, window_size): value(column, feature)
@@ -177,12 +163,12 @@ def expand(
     values = [value_column(column) for column in columns]
     # Ordered: DuckDB rewrites an unordered window aggregate into a self join,
     # which fails to bind below the spectral window functions.
-    series = ibis.window(group_by=list(keys), order_by=_integer(table, POSITION))
+    series = ibis.window(group_by=list(keys), order_by=table[POSITION].cast(int))
     points = table.select(
         *keys,
         POSITION,
         *values,
-        **{_LAST_POSITION: _integer(table, POSITION).max().over(series)},
+        **{_LAST_POSITION: table[POSITION].cast(int).max().over(series)},
     )
     offsets = ibis_ops.literal_table(
         f"__ts_offsets_{window_size}",
@@ -190,27 +176,28 @@ def expand(
         ibis.schema({_OFFSET: "int64"}),
     )
     copies = points.cross_join(offsets)
-    offset = _integer(copies, _OFFSET)
-    window_end = _integer(copies, POSITION) + offset
+    offset = copies[_OFFSET].cast(int)
+    window_end = copies[POSITION].cast(int) + offset
     in_complete_window = copies.filter(
         window_end >= ibis.literal(window_size - 1),
-        window_end <= _integer(copies, _LAST_POSITION),
+        window_end <= copies[_LAST_POSITION].cast(int),
     )
-    offset = _integer(in_complete_window, _OFFSET)
+    offset = in_complete_window[_OFFSET].cast(int)
     expanded = in_complete_window.select(
         *keys,
-        **{WINDOW_END: _integer(in_complete_window, POSITION) + offset},
+        **{WINDOW_END: in_complete_window[POSITION].cast(int) + offset},
         **{value: in_complete_window[value] for value in values},
         **{POSITION_IN_WINDOW: ibis.literal(window_size - 1) - offset},
     )
     if not uses_lag:
         return expanded
     window = ibis.window(
-        group_by=[*keys, WINDOW_END], order_by=_integer(expanded, POSITION_IN_WINDOW)
+        group_by=[*keys, WINDOW_END], order_by=expanded[POSITION_IN_WINDOW].cast(int)
     )
     return expanded.mutate(
         **{
-            previous_values_column(column): _floating(expanded, value_column(column))
+            previous_values_column(column): expanded[value_column(column)]
+            .cast(float)
             .lag()
             .over(window)
             for column in columns
@@ -231,16 +218,16 @@ def expanded_point_features(  # noqa: PLR0913
 
     def points(column: str, feature: PointFeature) -> Points:
         previous_values = (
-            _floating(expanded, previous_values_column(column))
+            expanded[previous_values_column(column)].cast(float)
             if feature.uses_lag
             else None
         )
         return Points(
-            values=_floating(expanded, value_column(column)),
+            values=expanded[value_column(column)].cast(float),
             window_size=window_size,
             feature=feature,
             previous_values_column=previous_values,
-            position_column=_integer(expanded, POSITION_IN_WINDOW),
+            position_column=expanded[POSITION_IN_WINDOW].cast(int),
         )
 
     return expanded @ Aggregate(
@@ -281,11 +268,11 @@ def spectral_features(  # noqa: PLR0913
     # Window functions rather than an aggregate joined back, so the query
     # expands each window once.
     whole_window = ibis.window(group_by=window_keys)
-    position_in_window = _integer(expanded, POSITION_IN_WINDOW)
+    position_in_window = expanded[POSITION_IN_WINDOW].cast(int)
     centred_position = position_in_window.cast(float) - mean_position
 
     def values(column: str) -> ir.FloatingColumn:
-        return _floating(expanded, value_column(column))
+        return expanded[value_column(column)].cast(float)
 
     def residuals_of(column: str) -> ir.Value:
         mean = values(column).mean().over(whole_window)
@@ -327,20 +314,20 @@ def spectral_features(  # noqa: PLR0913
     bin_rows = residuals.cross_join(frequency_bins)
     angle_factor = 2 * math.pi / window_size
     angle = (
-        _integer(bin_rows, FREQUENCY_BIN) * _integer(bin_rows, POSITION_IN_WINDOW)
+        bin_rows[FREQUENCY_BIN].cast(int) * bin_rows[POSITION_IN_WINDOW].cast(int)
     ).cast(float) * angle_factor
     spectrum = bin_rows @ Aggregate(
         by=[*window_keys, FREQUENCY_BIN, *carried],
         expr={
             **{
                 _window_statistic("real", column): (
-                    _floating(bin_rows, value_column(column)) * angle.cos()
+                    bin_rows[value_column(column)].cast(float) * angle.cos()
                 ).sum()
                 for column in columns
             },
             **{
                 _window_statistic("imaginary", column): (
-                    _floating(bin_rows, value_column(column)) * angle.sin()
+                    bin_rows[value_column(column)].cast(float) * angle.sin()
                 ).sum()
                 for column in columns
             },
@@ -348,34 +335,36 @@ def spectral_features(  # noqa: PLR0913
     )
     spectrum = spectrum.mutate(
         **{
-            FREQUENCY: _integer(spectrum, FREQUENCY_BIN).cast(float)
+            FREQUENCY: spectrum[FREQUENCY_BIN].cast(int).cast(float)
             * sampling_frequency
             / window_size
         },
         **{
             _window_statistic("magnitude", column): (
-                _floating(spectrum, _window_statistic("real", column)) ** 2
-                + _floating(spectrum, _window_statistic("imaginary", column)) ** 2
+                spectrum[_window_statistic("real", column)].cast(float).pow(2)
+                + spectrum[_window_statistic("imaginary", column)].cast(float).pow(2)
             ).sqrt()
             for column in columns
         },
     )
     cumulative = ibis.cumulative_window(
-        group_by=window_keys, order_by=_integer(spectrum, FREQUENCY_BIN)
+        group_by=window_keys, order_by=spectrum[FREQUENCY_BIN].cast(int)
     )
     spectrum = spectrum.mutate(
         **{
-            _window_statistic("cumulative_magnitude", column): _floating(
-                spectrum, _window_statistic("magnitude", column)
-            )
+            _window_statistic("cumulative_magnitude", column): spectrum[
+                _window_statistic("magnitude", column)
+            ]
+            .cast(float)
             .sum()
             .over(cumulative)
             for column in columns
         },
         **{
-            _window_statistic("total_magnitude", column): _floating(
-                spectrum, _window_statistic("magnitude", column)
-            )
+            _window_statistic("total_magnitude", column): spectrum[
+                _window_statistic("magnitude", column)
+            ]
+            .cast(float)
             .sum()
             .over(whole_window)
             for column in columns
@@ -384,24 +373,24 @@ def spectral_features(  # noqa: PLR0913
 
     def view(column: str) -> Spectrum:
         return Spectrum(
-            frequency_bin=_integer(spectrum, FREQUENCY_BIN),
-            frequency=_floating(spectrum, FREQUENCY),
-            magnitude=_floating(spectrum, _window_statistic("magnitude", column)),
-            cumulative_magnitude=_floating(
-                spectrum, _window_statistic("cumulative_magnitude", column)
-            ),
-            total_magnitude=_floating(
-                spectrum, _window_statistic("total_magnitude", column)
+            frequency_bin=spectrum[FREQUENCY_BIN].cast(int),
+            frequency=spectrum[FREQUENCY].cast(float),
+            magnitude=spectrum[_window_statistic("magnitude", column)].cast(float),
+            cumulative_magnitude=spectrum[
+                _window_statistic("cumulative_magnitude", column)
+            ].cast(float),
+            total_magnitude=spectrum[_window_statistic("total_magnitude", column)].cast(
+                float
             ),
             window_size=window_size,
         )
 
     def valid(column: str) -> ir.BooleanValue:
         """No null value, and more than rounding left after detrending."""
-        non_null_count = _integer(spectrum, _window_statistic("non_null_count", column))
-        scale = _floating(spectrum, _window_statistic("scale", column))
-        total_magnitude = _floating(
-            spectrum, _window_statistic("total_magnitude", column)
+        non_null_count = spectrum[_window_statistic("non_null_count", column)].cast(int)
+        scale = spectrum[_window_statistic("scale", column)].cast(float)
+        total_magnitude = spectrum[_window_statistic("total_magnitude", column)].cast(
+            float
         )
         complete = non_null_count.max() == ibis.literal(window_size)
         not_zero = total_magnitude.max() > scale.max() * (ZERO_TOLERANCE * window_size)
@@ -410,9 +399,8 @@ def spectral_features(  # noqa: PLR0913
     return spectrum @ Aggregate(
         by=window_keys,
         expr={
-            naming(column, feature, window_size): _null_unless(
-                valid(column), feature.reduce(view(column))
-            )
+            naming(column, feature, window_size): feature.reduce(view(column))
+            @ NullUnless(valid(column))
             for column in columns
             for feature in features
         },
@@ -431,7 +419,7 @@ def join_back(table: Table, results: Sequence[Table], *, keys: Sequence[str]) ->
             result,
             [
                 *(table[key] == result[key] for key in keys),
-                _integer(table, POSITION) == _integer(result, WINDOW_END),
+                table[POSITION].cast(int) == result[WINDOW_END].cast(int),
             ],
             rname=f"__ts_joined_{index}__{{name}}",
         )

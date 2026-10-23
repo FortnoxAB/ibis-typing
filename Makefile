@@ -39,7 +39,7 @@ update_deps:
 
 update_expected: export UPDATE_EXPECTED=Y
 update_expected:
-	uv run $(PYTEST) -k "test_generate_ibis_schema_packages and not test_update_expected_is_false_by_default"
+	uv run $(PYTEST) -k "test_generate_ibis_ and not test_update_expected_is_false_by_default"
 
 # Test
 test: test_unittests test_duck test_trino test_patchers test_coverage

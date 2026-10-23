@@ -5,7 +5,7 @@ Demonstrates compatibility with type checker and IntelliJ IDE.
 
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import TypedDict, assert_type
 
 import hypothesis
 from attrs import frozen
@@ -65,7 +65,8 @@ def test_simple_column_typing(fetch_table, data):
     _ = inputs.table @ Select(
         expr={
             col.integer: this[col.integer].bit_and(),
-            col.float: this[col.float].isnan(),
+            # ty promotes `float` to `int | float`, matching the Integer overload too.
+            col.float: this[col.float].isnan(),  # ty:ignore[unresolved-attribute]
             col.boolean: this[col.boolean].all(),
             col.text: this[col.text].lower(),
             col.bytes: this[col.bytes].hashbytes(),
@@ -96,6 +97,25 @@ def test_collections_column_typing():
             col.json: this[col.json]["key"].array[0] @ it.defer(it.JSON).float,
         },
     )
+
+
+def test_defer_alias_typing():
+    # Statically checked by the type checkers; assert_type is a no-op at runtime.
+    assert_type(it.defer(it.Boolean), ir.BooleanValue)
+    assert_type(it.defer(it.Int8), ir.IntegerValue)
+    assert_type(it.defer(it.UInt64), ir.IntegerValue)
+    assert_type(it.defer(it.Float64), ir.FloatingValue)
+    assert_type(it.defer(it.String), ir.StringValue)
+    assert_type(it.defer(it.Binary), ir.BinaryValue)
+    assert_type(it.defer(it.Decimal), ir.DecimalValue)
+    assert_type(it.defer(it.Timestamp), ir.TimestampValue)
+    assert_type(it.defer(it.Date), ir.DateValue)
+    assert_type(it.defer(it.Time), ir.TimeValue)
+    assert_type(it.defer(it.UUID), ir.UUIDValue)
+    assert_type(it.defer(it.Array[it.Int64]), ir.ArrayValue)
+    assert_type(it.defer(it.Map[it.String, it.Int64]), ir.MapValue)
+    assert_type(it.defer(it.Struct[CollectionSchema.MyStruct]), ir.StructValue)
+    assert_type(it.defer(it.JSON), ir.JSONValue)
 
 
 @exhaustive

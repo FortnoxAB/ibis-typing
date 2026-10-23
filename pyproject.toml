@@ -82,6 +82,7 @@ dev = [
     "ty>=0.0.24",
     "prek>=0.4.4",
     "complexipy>=8.0.1",
+    "pyrefly>=1.4.0",
 ]
 
 [project.entry-points.pytest11]
@@ -204,3 +205,6 @@ failed = true
 sort = "desc"
 check-script = true
 cache-dir = ".complexipy_cache"
+
+[tool.pyrefly]
+preset = "default"

@@ -4,7 +4,7 @@ import functools
 import importlib
 import logging
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from types import FunctionType, MethodType, ModuleType
 from typing import cast
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 @frozen
 class PatchedModuleWriter:
     target_module: ModuleType
-    patchers: list[Callable[[str], str]]
+    patchers: Sequence[Callable[[str], str]]
 
     def write_patched_module(self):
         logger.info("Writing type-patched module")
@@ -59,9 +59,29 @@ class MethodOverloadPatcher:
 
     @classmethod
     def apply_patch(cls, method: str, cls_body: str, patch_body: str) -> str:
+        """Replace the method overloads, or add the patch method if inherited.
+
+        >>> patch_body = '''
+        ...     @overload
+        ...     def bar(self, x: int) -> int: ...
+        ...     def bar(self, x) -> Any:
+        ...         return super().bar(x)'''
+        >>> print(MethodOverloadPatcher.apply_patch("bar", "\\n    x = 1", patch_body))
+        <BLANKLINE>
+            x = 1
+        <BLANKLINE>
+            @overload
+            def bar(self, x: int) -> int: ...
+            def bar(self, x) -> Any:
+                return super().bar(x)
+        """
         method_def = "\n" + " " * 4 + f"def {method}("
 
         cls_clean = remove_overloads(cls_body, method=method)
+        if method_def not in cls_clean:
+            # The method is inherited, so add the full patch implementation.
+            return cls_clean + "\n" + patch_body
+
         head, tail = cls_clean.rsplit(method_def, 1)
         patch = patch_body.rsplit(method_def, 1)[0]
 
@@ -245,6 +265,25 @@ class TypeCheckingModulePatcher:
             if patch not in module_impl
             else module_impl
         )
+
+
+@frozen
+class SourceReplacePatcher:
+    """Replace an exact source snippet in the target module.
+
+    >>> patcher = SourceReplacePatcher("x = 1", "x = 2")
+    >>> print(patcher("x = 1"))
+    x = 2
+    """
+
+    old: str
+    new: str
+
+    def __call__(self, module_impl: str) -> str:
+        logger.info("Replace source snippet")
+        if self.old not in module_impl:
+            raise LookupError(f"Source snippet not found: {self.old!r}")
+        return module_impl.replace(self.old, self.new)
 
 
 @frozen

@@ -34,6 +34,8 @@ def get_patchers():
         ValueCast,
         ValueTryCast,
         ValueFillNull,
+        ColumnCast,
+        ColumnTryCast,
     ]
     functions = [
         literal,
@@ -47,14 +49,10 @@ def get_patchers():
 
 
 class ValueExtensionMethodPatch(Value):
-    # Custom patch for adding type support for `it.defer(int).method()`
-    # Hi-jack any unpatched function.
-
-    @overload
-    def __rmatmul__(self, other: Value) -> Self: ...  # type: ignore
-
-    def name(self, name: str, /) -> Self:
-        raise NotImplementedError
+    # Type `value @ it.defer(int).method()`, where `it.defer()` is typed as a Value.
+    # Returns NotImplemented to defer to `other.__rmatmul__` at runtime.
+    def __matmul__[V: Value](self, other: V) -> V:
+        return NotImplemented  # pyrefly: ignore[bad-return]
 
 
 class ValueCast(Value):
@@ -189,12 +187,144 @@ class ValueTryCast(Value):
         raise NotImplementedError
 
 
+class ColumnCast(Column):
+    # Python types
+    # Primitives
+    @overload
+    def cast(self, target_type: Type[bool]) -> ir.BooleanColumn: ...
+    @overload
+    def cast(self, target_type: Type[int]) -> ir.IntegerColumn: ...
+    @overload
+    def cast(self, target_type: Type[float]) -> ir.FloatingColumn: ...
+    @overload
+    def cast(self, target_type: Type[bytes]) -> ir.BinaryColumn: ...
+    @overload
+    def cast(self, target_type: Type[str]) -> ir.StringColumn: ...
+    # Complex types
+    @overload
+    def cast(self, target_type: Type[datetime.datetime]) -> ir.TimestampColumn: ...
+    @overload
+    def cast(self, target_type: Type[datetime.date]) -> ir.DateColumn: ...
+    @overload
+    def cast(self, target_type: Type[datetime.time]) -> ir.TimeColumn: ...
+    @overload
+    def cast(self, target_type: Type[decimal.Decimal]) -> ir.DecimalColumn: ...
+    @overload
+    def cast(self, target_type: Type[uuid.UUID]) -> ir.UUIDColumn: ...
+
+    # Ibis data types
+    # Primitives
+    @overload
+    def cast(self, target_type: dt.Boolean) -> ir.BooleanColumn: ...
+    @overload
+    def cast(self, target_type: dt.Integer) -> ir.IntegerColumn: ...
+    @overload
+    def cast(self, target_type: dt.Floating) -> ir.FloatingColumn: ...
+    @overload
+    def cast(self, target_type: dt.Binary) -> ir.BinaryColumn: ...
+    @overload
+    def cast(self, target_type: dt.String) -> ir.StringColumn: ...
+    # Complex types
+    @overload
+    def cast(self, target_type: dt.Timestamp) -> ir.TimestampColumn: ...
+    @overload
+    def cast(self, target_type: dt.Date) -> ir.DateColumn: ...
+    @overload
+    def cast(self, target_type: dt.Time) -> ir.TimeColumn: ...
+    @overload
+    def cast(self, target_type: dt.Decimal) -> ir.DecimalColumn: ...
+    @overload
+    def cast(self, target_type: dt.UUID) -> ir.UUIDColumn: ...
+    # Collections
+    @overload
+    def cast(self, target_type: dt.Array) -> ir.ArrayColumn: ...
+    @overload
+    def cast(self, target_type: dt.Map) -> ir.MapColumn: ...
+    # Non-typed collections
+    @overload
+    def cast(self, target_type: dt.JSON) -> ir.JSONColumn: ...
+    @overload
+    def cast(self, target_type: dt.Struct) -> ir.StructColumn: ...
+    # Other
+    @overload
+    def cast(self, target_type: Any) -> Column: ...
+
+    def cast(self, target_type) -> Any:
+        return super().cast(target_type)
+
+
+class ColumnTryCast(Column):
+    # Python types
+    # Primitives
+    @overload
+    def try_cast(self, target_type: Type[bool]) -> ir.BooleanColumn: ...
+    @overload
+    def try_cast(self, target_type: Type[int]) -> ir.IntegerColumn: ...
+    @overload
+    def try_cast(self, target_type: Type[float]) -> ir.FloatingColumn: ...
+    @overload
+    def try_cast(self, target_type: Type[bytes]) -> ir.BinaryColumn: ...
+    @overload
+    def try_cast(self, target_type: Type[str]) -> ir.StringColumn: ...
+    # Complex types
+    @overload
+    def try_cast(self, target_type: Type[datetime.datetime]) -> ir.TimestampColumn: ...
+    @overload
+    def try_cast(self, target_type: Type[datetime.date]) -> ir.DateColumn: ...
+    @overload
+    def try_cast(self, target_type: Type[datetime.time]) -> ir.TimeColumn: ...
+    @overload
+    def try_cast(self, target_type: Type[decimal.Decimal]) -> ir.DecimalColumn: ...
+    @overload
+    def try_cast(self, target_type: Type[uuid.UUID]) -> ir.UUIDColumn: ...
+
+    # Ibis data types
+    # Primitives
+    @overload
+    def try_cast(self, target_type: dt.Boolean) -> ir.BooleanColumn: ...
+    @overload
+    def try_cast(self, target_type: dt.Integer) -> ir.IntegerColumn: ...
+    @overload
+    def try_cast(self, target_type: dt.Floating) -> ir.FloatingColumn: ...
+    @overload
+    def try_cast(self, target_type: dt.Binary) -> ir.BinaryColumn: ...
+    @overload
+    def try_cast(self, target_type: dt.String) -> ir.StringColumn: ...
+    # Complex types
+    @overload
+    def try_cast(self, target_type: dt.Timestamp) -> ir.TimestampColumn: ...
+    @overload
+    def try_cast(self, target_type: dt.Date) -> ir.DateColumn: ...
+    @overload
+    def try_cast(self, target_type: dt.Time) -> ir.TimeColumn: ...
+    @overload
+    def try_cast(self, target_type: dt.Decimal) -> ir.DecimalColumn: ...
+    @overload
+    def try_cast(self, target_type: dt.UUID) -> ir.UUIDColumn: ...
+    # Collections
+    @overload
+    def try_cast(self, target_type: dt.Array) -> ir.ArrayColumn: ...
+    @overload
+    def try_cast(self, target_type: dt.Map) -> ir.MapColumn: ...
+    # Non-typed collections
+    @overload
+    def try_cast(self, target_type: dt.JSON) -> ir.JSONColumn: ...
+    @overload
+    def try_cast(self, target_type: dt.Struct) -> ir.StructColumn: ...
+    # Other
+    @overload
+    def try_cast(self, target_type: Any) -> Column: ...
+
+    def try_cast(self, target_type) -> Any:
+        return super().try_cast(target_type)
+
+
 class ValueFillNull(Value):
     @overload
     def fill_null(self, fill_value: Scalar) -> Self: ...
     @overload
     def fill_null(self, fill_value: Value) -> Self: ...
-    def fill_null(self, fill_value) -> Value:
+    def fill_null(self, fill_value) -> Self:
         raise NotImplementedError
 
 
