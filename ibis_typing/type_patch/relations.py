@@ -52,6 +52,10 @@ class TableExtensionMethodPatch(Table):
 
 
 class TableGetItem(Table):
+    # A field's `None` selects no column (scheduling.ibis.type_patch).
+    @overload
+    def __getitem__(self, col: None) -> NoReturn: ...
+
     # Type annotations for IntelliJ (treats Union types differently from type checkers)
     # Primitives
     @overload
@@ -330,4 +334,6 @@ class TableRelocate(Table):
 
 
 if TYPE_CHECKING:
+    from typing import NoReturn
+
     from ibis_typing import ibis_types as it
