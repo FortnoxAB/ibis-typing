@@ -78,7 +78,7 @@ def test_parquet_table_store_profiling(tmp_path: Path):
     assert profile.get("latency") != 0.0
 
 
-def test_parquet_table_store_can_create_tmp_store(tmp_path):
+def test_parquet_table_store_can_create_tmp_store(tmp_path: Path):
     store = ParquetTableStore(tmp_path)
     expected = ParquetTableStore(
         mock.ANY,

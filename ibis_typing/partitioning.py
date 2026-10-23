@@ -30,7 +30,7 @@ class PartitionColumns(TableMethod):
     keys: Sequence[it.NameOrType]
     partition_policy: PartitionPolicy
 
-    def apply(self, table):
+    def apply(self, table: Table) -> Table:
         tables = partition_columns(
             table, keys=self.keys, partition_policy=self.partition_policy
         )
@@ -41,10 +41,10 @@ class PartitionColumns(TableMethod):
 
 
 @frozen
-class PartitionedColumnTableExpression(IdentityTableExpression):
+class PartitionedColumnTableExpression[S: IbisSchema](IdentityTableExpression[S]):
     params: PartitionColumns
 
-    def __call__(self, origin: IbisTable):
+    def __call__(self, origin: IbisTable[S]) -> Table:
         return origin.table @ self.params
 
 

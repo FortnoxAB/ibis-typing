@@ -80,9 +80,9 @@ class TableGetItem(Table):
     def __getitem__(self, col: it.StructType) -> ir.StructColumn: ...
     # Collections
     @overload
-    def __getitem__(self, col: it.ArrayType) -> ir.ArrayColumn: ...
+    def __getitem__(self, col: it.ArrayType[Any]) -> ir.ArrayColumn: ...
     @overload
-    def __getitem__(self, col: it.MapType) -> ir.MapColumn: ...
+    def __getitem__(self, col: it.MapType[Any, Any]) -> ir.MapColumn: ...
     @overload
     def __getitem__(self, col: it.JSONType) -> ir.JSONColumn: ...
 
@@ -111,11 +111,11 @@ class TableGetItem(Table):
     def __getitem__(self, col: it.UUID) -> ir.UUIDColumn: ...
     # Collections
     @overload
-    def __getitem__(self, col: it.Struct) -> ir.StructColumn: ...
+    def __getitem__(self, col: it.Struct[Any]) -> ir.StructColumn: ...
     @overload
-    def __getitem__(self, col: it.Map) -> ir.MapColumn: ...
+    def __getitem__(self, col: it.Map[Any, Any]) -> ir.MapColumn: ...
     @overload
-    def __getitem__(self, col: it.Array) -> ir.ArrayColumn: ...
+    def __getitem__(self, col: it.Array[Any]) -> ir.ArrayColumn: ...
     @overload
     def __getitem__(self, col: it.JSON) -> ir.JSONColumn: ...
 
@@ -123,7 +123,7 @@ class TableGetItem(Table):
     @overload
     def __getitem__(self, col: Any) -> ir.Column: ...
 
-    def __getitem__(self, col) -> ir.Column:
+    def __getitem__(self, col: Any) -> ir.Column:
         raise NotImplementedError
 
 
@@ -131,11 +131,11 @@ class TableAggregate(Table):
     @overload
     def aggregate(
         self,
-        metrics: Iterable = (),
+        metrics: Iterable[Any] = (),
         /,
         *,
-        by: Sequence = (),
-        having: Sequence = (),
+        by: Sequence[Any] = (),
+        having: Sequence[Any] = (),
         **kwargs: ir.Value,
     ) -> Table: ...
 
@@ -152,11 +152,11 @@ class TableAggregate(Table):
 
     def aggregate(
         self,
-        metrics=(),
+        metrics: Any = (),
         /,
         *,
-        by=(),
-        having=(),
+        by: Any = (),
+        having: Any = (),
         **kwargs: ir.Value,
     ) -> Table:
         raise NotImplementedError
@@ -179,8 +179,8 @@ class TableSelect(Table):
 
     def select(
         self,
-        *exprs,
-        **named_exprs,
+        *exprs: Any,
+        **named_exprs: Any,
     ) -> Table:
         raise NotImplementedError
 
@@ -190,7 +190,7 @@ class TableCast(Table):
     def cast(self, schema: SchemaLike) -> Table: ...
     @overload
     def cast(self, schema: Mapping[it.NameOrType, Any]) -> Table: ...
-    def cast(self, schema) -> Table:
+    def cast(self, schema: Any) -> Table:
         raise NotImplementedError
 
 
@@ -212,8 +212,8 @@ class TableDistinct(Table):
     def distinct(
         self,
         *,
-        on=None,
-        keep="first",
+        on: Any = None,
+        keep: Literal["first", "last"] | None = "first",
     ) -> Table:
         raise NotImplementedError
 
@@ -238,9 +238,9 @@ class TableDropNull(Table):
         how: Literal["any", "all"] = "any",
     ) -> Table: ...
     @overload
-    def drop_null(self, subset=None, /, *, how="any") -> Table: ...
+    def drop_null(self, subset: Any = None, /, *, how: str = "any") -> Table: ...
 
-    def drop_null(self, subset=None, /, *, how="any") -> Table:
+    def drop_null(self, subset: Any = None, /, *, how: str = "any") -> Table:
         raise NotImplementedError
 
 

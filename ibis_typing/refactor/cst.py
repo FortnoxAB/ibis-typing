@@ -62,7 +62,7 @@ class MatchAttr:
 class MatchCall:
     args: Any = DoNotCareSentinel.DEFAULT
 
-    def __rmatmul__(self, func) -> m.Call:
+    def __rmatmul__(self, func: m.BaseExpression) -> m.Call:
         return m.Call(func, self.args)
 
 

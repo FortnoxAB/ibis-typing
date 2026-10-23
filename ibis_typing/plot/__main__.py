@@ -14,7 +14,7 @@ from ibis_typing.plot import graph
 logger = logging.getLogger(__name__)
 
 
-def main(argv=None):
+def main(argv: Sequence[str] | None = None):
     logging.basicConfig(level=logging.INFO)
     args = parse_args(argv)
 
@@ -37,7 +37,7 @@ class Params:
     color_by_name: Mapping[str, str] | None = None
 
 
-def parse_args(argv=None) -> Params:
+def parse_args(argv: Sequence[str] | None = None) -> Params:
     parser = argparse.ArgumentParser(description=__doc__)
     arg = parser.add_argument
 

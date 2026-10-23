@@ -1,11 +1,12 @@
 from attrs import frozen
 
 from ibis_typing import IbisSchema, it
+from ibis_typing.fixtures.expressions import FetchTable
 from ibis_typing.ibis_joins import AntiJoin, LeftJoin
 from tests.conftest import SimpleSchema
 
 
-def test_left_join_without_duplicates(fetch_table):
+def test_left_join_without_duplicates(fetch_table: FetchTable):
     @frozen
     class RightSchema(IbisSchema):
         id: it.Int64
@@ -37,7 +38,7 @@ def test_left_join_without_duplicates(fetch_table):
     assert actual == expected
 
 
-def test_anti_join_excludes_matching_rows(fetch_table):
+def test_anti_join_excludes_matching_rows(fetch_table: FetchTable):
     @frozen
     class RightSchema(IbisSchema):
         id: it.Int64

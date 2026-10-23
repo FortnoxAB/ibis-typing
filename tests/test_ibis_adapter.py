@@ -1,7 +1,8 @@
 import decimal
 import uuid
 from collections.abc import Mapping
-from typing import TypedDict
+from pathlib import Path
+from typing import TypedDict, override
 
 import ibis
 import pytest
@@ -9,12 +10,14 @@ from attrs import frozen
 
 from ibis_typing import (
     Expression,
+    IbisConnection,
     IbisSchema,
     IbisTable,
     it,
     this,
 )
 from ibis_typing.fixtures import marks
+from ibis_typing.fixtures.expressions import EvaluateTable, FetchTable
 from ibis_typing.ibis_utils import Aggregate, Select
 from ibis_typing.table_provider import (
     get_abstract_table,
@@ -47,6 +50,7 @@ class OutputTable(Expression):
     output_id: it.String = None
 
     @classmethod
+    @override
     def from_expression(cls, inputs: IbisTable[InputTable]):
         table = inputs.table.rename({"output_id": inputs.cols.input_id})
         return cls.of(table)
@@ -57,6 +61,7 @@ class ArrayTable(Expression):
     output_ids: it.Array[it.JSON] = None
 
     @classmethod
+    @override
     def from_expression(cls, inputs: IbisTable[InputTable]):
         col = inputs.cols
         table = inputs.table @ Aggregate(
@@ -67,7 +72,9 @@ class ArrayTable(Expression):
 
 class ArrayOutputTable(ArrayTable):
     @classmethod
-    def from_expression(cls, inputs: IbisTable[ArrayTable]):  # type: ignore
+    @override
+    # Narrows the input table schema of the parent expression.
+    def from_expression(cls, inputs: IbisTable[ArrayTable]):  # pyrefly: ignore[bad-override]
         return cls.of(inputs.table)
 
 
@@ -76,6 +83,7 @@ class SuperTable(Expression):
     super_id: it.String = None
 
     @classmethod
+    @override
     def from_expression(cls, outputs: IbisTable[OutputTable]):
         table = outputs.table.rename({"super_id": outputs.cols.output_id})
         return cls.of(table)
@@ -98,28 +106,28 @@ data = [
 ]
 
 
-def test_fetch_table_of_rows(fetch_table):
+def test_fetch_table_of_rows(fetch_table: FetchTable):
     table = Schema.of_rows(data)
     assert fetch_table(table) == data
 
 
-def test_fetch_table_without_rows(fetch_table):
+def test_fetch_table_without_rows(fetch_table: FetchTable):
     table = Schema.of_rows([])
     assert fetch_table(table) == []
 
 
-def test_fetch_table_from_empty_table_provider(fetch_table):
+def test_fetch_table_from_empty_table_provider(fetch_table: FetchTable):
     table = get_empty_table(Schema)
     assert fetch_table(table) == []
 
 
-def test_fetch_abstract_table_raises_error(fetch_table):
+def test_fetch_abstract_table_raises_error(fetch_table: FetchTable):
     table = get_abstract_table(Schema)
     with pytest.raises(Exception):
         fetch_table(table)
 
 
-def test_fetch_table_expression(fetch_table):
+def test_fetch_table_expression(fetch_table: FetchTable):
     rows = [InputTable(input_id="1")]
     expected = [OutputTable(output_id="1")]
 
@@ -130,7 +138,7 @@ def test_fetch_table_expression(fetch_table):
     assert actual == expected
 
 
-def test_struct_table_raises_TypeError(fetch_table):
+def test_struct_table_raises_TypeError(fetch_table: FetchTable):
     @frozen
     class MyStruct(Expression):
         class Inner(TypedDict):
@@ -139,6 +147,7 @@ def test_struct_table_raises_TypeError(fetch_table):
         inner: it.Struct[Inner] = None
 
         @classmethod
+        @override
         def from_expression(cls, inputs: IbisTable[InputTable]):
             table = inputs.table @ Select(
                 expr={"inner": ibis.struct({"value": this[inputs.cols.input_id]})},
@@ -155,7 +164,7 @@ def test_struct_table_raises_TypeError(fetch_table):
         fetch_table(table)
 
 
-def test_evaluate_table(evaluate_table):
+def test_evaluate_table(evaluate_table: EvaluateTable):
     rows = iter([OutputTable(output_id="1"), InputTable(input_id="1")])
 
     actual, expected = evaluate_table(OutputTable, rows)
@@ -163,7 +172,9 @@ def test_evaluate_table(evaluate_table):
     assert actual == expected
 
 
-def test_evaluate_table_raises_error_when_having_unused_inputs(evaluate_table):
+def test_evaluate_table_raises_error_when_having_unused_inputs(
+    evaluate_table: EvaluateTable,
+):
     rows = [OutputTable(output_id="1"), Schema(text="2")]
 
     with pytest.raises(ValueError):
@@ -171,7 +182,7 @@ def test_evaluate_table_raises_error_when_having_unused_inputs(evaluate_table):
 
 
 def test_evaluate_table_can_construct_intermediate_input_expressions(
-    evaluate_table,
+    evaluate_table: EvaluateTable,
 ):
     rows = iter([SuperTable(super_id="1"), InputTable(input_id="1")])
 
@@ -180,7 +191,7 @@ def test_evaluate_table_can_construct_intermediate_input_expressions(
     assert actual == expected
 
 
-def test_evaluate_table_raises_error_when_missing_inputs(evaluate_table):
+def test_evaluate_table_raises_error_when_missing_inputs(evaluate_table: EvaluateTable):
     rows = [SuperTable(super_id="1")]
 
     with pytest.raises(ValueError) as e:
@@ -195,7 +206,9 @@ Missing input schema. Trace input -> output:
     assert e.value.args[0] == expected_message
 
 
-def test_evaluate_table_uses_cache_for_calculated_expressions(evaluate_table):
+def test_evaluate_table_uses_cache_for_calculated_expressions(
+    evaluate_table: EvaluateTable,
+):
     @frozen
     class Input(IbisSchema):
         val: it.Int64
@@ -205,10 +218,12 @@ def test_evaluate_table_uses_cache_for_calculated_expressions(evaluate_table):
         calls = 0
 
         @classmethod
+        @override
         def _get_table_schema(cls) -> Mapping[str, str]:
             return Input._get_table_schema()
 
         @classmethod
+        @override
         def from_expression(cls, inputs: IbisTable[Input]):
             cls.calls += 1
             return cls.of(inputs.table)
@@ -216,12 +231,14 @@ def test_evaluate_table_uses_cache_for_calculated_expressions(evaluate_table):
     @frozen
     class Upper(Input, Expression):
         @classmethod
+        @override
         def from_expression(cls, inputs: IbisTable[Intermediate]):
             return cls.of(inputs.table)
 
     @frozen
     class Output(Input, Expression):
         @classmethod
+        @override
         def from_expression(
             cls, inputs: IbisTable[Intermediate], upper: IbisTable[Upper]
         ):
@@ -236,7 +253,7 @@ def test_evaluate_table_uses_cache_for_calculated_expressions(evaluate_table):
 
 
 @marks.use_backend_duckdb
-def test_fetch_read_and_write_parquet(tmp_path, ibis_connection):
+def test_fetch_read_and_write_parquet(tmp_path: Path, ibis_connection: IbisConnection):
     path = tmp_path / "data.parquet"
     expected_table = Schema.of_rows(data)
 

@@ -9,6 +9,7 @@ from attrs import frozen
 from ibis import ir
 
 from ibis_typing.time_series.features import PointFeature, Points
+from tests.time_series.conftest import Trailing
 from tests.time_series.series import extraction, table
 
 
@@ -53,7 +54,7 @@ class ReadsPreviousValuesWithoutLag(PointFeature):
         return points.previous_values.max()
 
 
-def test_features_can_weight_recent_points_by_position(trailing):
+def test_features_can_weight_recent_points_by_position(trailing: Trailing):
     # (0·1 + 0·2 + 6·3) / (1 + 2 + 3)
     assert trailing([0.0, 0.0, 6.0], RecencyWeightedMean(), window_size=3) == [
         None,
@@ -62,7 +63,7 @@ def test_features_can_weight_recent_points_by_position(trailing):
     ]
 
 
-def test_features_can_combine_previous_values_and_steps_from_newest(trailing):
+def test_features_can_combine_previous_values_and_steps_from_newest(trailing: Trailing):
     assert trailing([1.0, 4.0, 10.0, 11.0], LatestStep(), window_size=3) == [
         None,
         None,

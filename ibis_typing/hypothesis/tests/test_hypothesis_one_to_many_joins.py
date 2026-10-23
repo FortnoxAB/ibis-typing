@@ -1,6 +1,6 @@
 """Sample Hypothesis-based tests of one-to-many join Ibis transforms."""
 
-from typing import NamedTuple
+from typing import NamedTuple, override
 
 from attrs import frozen
 from hypothesis import given
@@ -8,6 +8,7 @@ from hypothesis import strategies as st
 from ibis import literal
 
 from ibis_typing import Expression, IbisSchema, IbisTable, it, this
+from ibis_typing.fixtures.expressions import EvaluateTable
 from ibis_typing.hypothesis import strategy_for, unique
 
 
@@ -31,6 +32,7 @@ class Balance(Expression):
     balance: it.Float64 = None
 
     @classmethod
+    @override
     def from_expression(
         cls,
         opening_balance: IbisTable[OpeningBalance],
@@ -84,7 +86,9 @@ def balance_inputs(draw: st.DrawFn) -> BalanceInputs:
 
 # Test Ibis expression unit-under-test given random Hypothesis-provided samples.
 @given(st.lists(balance_inputs(), min_size=1))
-def test_accumulated_balance_per_tenant(evaluate_table, inputs: list[BalanceInputs]):
+def test_accumulated_balance_per_tenant(
+    evaluate_table: EvaluateTable, inputs: list[BalanceInputs]
+):
     def iter_rows():
         # DuckDB requires at least one row for each table.
         yield Transaction()

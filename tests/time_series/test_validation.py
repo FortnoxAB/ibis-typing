@@ -29,7 +29,9 @@ from tests.time_series.series import extraction, table
         ({"columns": ("key",)}, ValueError, "must be numeric"),
     ],
 )
-def test_invalid_arguments_are_rejected(overrides, error, message):
+def test_invalid_arguments_are_rejected(
+    overrides: dict[str, Any], error: type[Exception], message: str
+):
     method = extraction(Sum(), **overrides)
     with pytest.raises(error, match=message):
         _ = table() @ method

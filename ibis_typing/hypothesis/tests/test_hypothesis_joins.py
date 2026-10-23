@@ -5,13 +5,14 @@ from __future__ import annotations
 import itertools
 import operator
 import uuid
-from typing import NamedTuple
+from typing import NamedTuple, override
 
 from attrs import frozen
 from hypothesis import given
 from hypothesis import strategies as st
 
 from ibis_typing import Expression, IbisSchema, IbisTable, it
+from ibis_typing.fixtures.expressions import EvaluateTable
 from ibis_typing.hypothesis import strategy_for
 from ibis_typing.ibis_joins import LeftJoin, OuterJoin
 from ibis_typing.reference import py_join
@@ -58,6 +59,7 @@ class CompositeClientTenant(Expression):
     bookkeeping_license: it.Boolean = None
 
     @classmethod
+    @override
     def from_expression(
         cls,
         client: IbisTable[Client],
@@ -124,7 +126,9 @@ def inputs_strategy(draw: st.DrawFn) -> Inputs:
 
 # Test the Ibis expression given random samples
 @given(st.lists(inputs_strategy(), min_size=1))
-def test_join_client_tenant_composite(evaluate_table, inputs: list[Inputs]):
+def test_join_client_tenant_composite(
+    evaluate_table: EvaluateTable, inputs: list[Inputs]
+):
     # Describe expected outputs given generated input samples.
     outputs = [
         CompositeClientTenant(
@@ -153,7 +157,9 @@ def test_join_client_tenant_composite(evaluate_table, inputs: list[Inputs]):
 
 
 @given(inputs=st.lists(inputs_strategy(), min_size=1))
-def test_ibis_join_against_python_implementation(evaluate_table, inputs: list[Inputs]):
+def test_ibis_join_against_python_implementation(
+    evaluate_table: EvaluateTable, inputs: list[Inputs]
+):
     mapping, client, tenant = (
         [operator.itemgetter(i)(triple) for triple in inputs] for i in range(3)
     )
@@ -165,7 +171,7 @@ def test_ibis_join_against_python_implementation(evaluate_table, inputs: list[In
 
 
 # Test using explicit input and output examples without reference implementation.
-def test_join_client_tenant_composite_without_hypothesis(evaluate_table):
+def test_join_client_tenant_composite_without_hypothesis(evaluate_table: EvaluateTable):
     # Declare input samples.
     clients = [
         Client(client_id=uuid.UUID(int=1), factoring_license=True),
@@ -200,6 +206,7 @@ def test_join_client_tenant_composite_without_hypothesis(evaluate_table):
 @frozen
 class OuterJoinTransform(ClientTenantMapping, Expression):
     @classmethod
+    @override
     def from_expression(
         cls, tenants: IbisTable[Tenant], mappings: IbisTable[ClientTenantMapping]
     ):
@@ -233,7 +240,9 @@ class OuterJoinTransform(ClientTenantMapping, Expression):
     ),
 )
 def test_outer_join(
-    evaluate_table, tenants: list[Tenant], mappings: list[ClientTenantMapping]
+    evaluate_table: EvaluateTable,
+    tenants: list[Tenant],
+    mappings: list[ClientTenantMapping],
 ):
     outputs = OuterJoinTransform.from_py(tenants, mappings)
     rows = [*tenants, *mappings, *outputs]

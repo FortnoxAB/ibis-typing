@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import Any, cast
+from typing import Any, cast, override
 
 import ibis
 from ibis import Table, Value, ir
@@ -15,11 +15,14 @@ from .ibis_extension_method import ValueMethod
 
 
 class ColumnChecksum(ValueMethod[Value, ir.IntegerValue]):
-    def apply(self, value):
+    @override
+    def apply(self, value: Value) -> ir.IntegerValue:
         return custom_operations.ColumnChecksum(arg=op_cast(value)).to_expr()
 
 
-def literal_table(name: str, rows: Iterable, schema: ibis.Schema) -> Table:
+def literal_table(
+    name: str, rows: Iterable[Iterable[Any]], schema: ibis.Schema
+) -> Table:
     return custom_operations.LiteralTable.from_rows(
         rows,
         schema=schema,

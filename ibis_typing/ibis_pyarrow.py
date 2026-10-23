@@ -10,7 +10,7 @@ import json
 import logging
 import uuid
 from collections.abc import Iterable, Sequence
-from typing import Any, cast
+from typing import Any, cast, override
 
 import attrs
 import ibis
@@ -60,6 +60,7 @@ class EvaluateValue:
             values = (val for batch in batches for val in batch.to_pylist())
             return [val @ PyFromArrowCompat(expr.type()) for val in values]
 
+        assert isinstance(value, ir.Scalar)
         arrow_obj = cast(pyarrow.Scalar, backend.to_pyarrow(value))
         return arrow_obj.as_py() @ PyFromArrowCompat(expr.type())
 
@@ -78,7 +79,7 @@ class EvaluateTable:
     backend: ibis.BaseBackend | None = None
     chunk_size: int = 1_000
 
-    def __rmatmul__(self, table: ir.Table) -> Iterable[tuple]:
+    def __rmatmul__(self, table: ir.Table) -> Iterable[tuple[Any, ...]]:
         backend = self.backend or table._find_backend(use_default=True)
         compat = table @ TableToArrowCompat()
 
@@ -120,7 +121,7 @@ class LiteralTableFromRows:
 class TupleToArrowCompat:
     schema: ibis.Schema
 
-    def __rmatmul__(self, other: tuple) -> tuple:
+    def __rmatmul__(self, other: tuple[Any, ...]) -> tuple[Any, ...]:
         return tuple(
             val @ PyToArrowCompat(t) for val, t in zip(other, self.schema.values())
         )
@@ -130,7 +131,7 @@ class TupleToArrowCompat:
 class TupleFromArrowCompat:
     schema: ibis.Schema
 
-    def __rmatmul__(self, other: tuple) -> tuple:
+    def __rmatmul__(self, other: tuple[Any, ...]) -> tuple[Any, ...]:
         return tuple(
             val @ PyFromArrowCompat(t) for val, t in zip(other, self.schema.values())
         )
@@ -217,10 +218,11 @@ class PyFromArrowCompat:
 
 
 @frozen
-class ValueFromArrowCompat(ValueMethod):
+class ValueFromArrowCompat(ValueMethod[Value, Value]):
     typ: dt.DataType
 
-    def apply(self, value):
+    @override
+    def apply(self, value: Value) -> Value:
         match self.typ:
             case dt.UUID():
                 assert isinstance(value, ir.StringValue)
@@ -247,10 +249,11 @@ class ValueFromArrowCompat(ValueMethod):
 
 
 @frozen
-class ValueToArrowCompat(ValueMethod):
+class ValueToArrowCompat(ValueMethod[Value, Value]):
     typ: dt.DataType
 
-    def apply(self, value):
+    @override
+    def apply(self, value: Value) -> Value:
         match self.typ:
             case dt.UUID():
                 assert isinstance(value, ir.UUIDValue)

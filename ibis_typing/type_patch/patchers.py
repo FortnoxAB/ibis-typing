@@ -7,7 +7,7 @@ import re
 from collections.abc import Callable, Sequence
 from pathlib import Path
 from types import FunctionType, MethodType, ModuleType
-from typing import cast
+from typing import Any, cast
 
 from attrs import frozen
 
@@ -88,7 +88,7 @@ class MethodOverloadPatcher:
         return head + patch + method_def + tail
 
 
-def read_patch_impl(cls_patch: type | Callable) -> str:
+def read_patch_impl(cls_patch: type | Callable[..., Any]) -> str:
     module = importlib.import_module(cls_patch.__module__)
     path = module.__file__
     assert path

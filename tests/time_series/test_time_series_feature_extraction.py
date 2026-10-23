@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from datetime import date
+from typing import override
 
 from attrs import frozen
 
 from ibis_typing import Expression, IbisSchema, IbisTable, it
+from ibis_typing.fixtures.expressions import EvaluateTable
 from ibis_typing.time_series import TimeSeriesFeatureExtraction
 from ibis_typing.time_series.features import MeanAbsDiff, MedianFrequency, NUnique, Sum
 
@@ -26,6 +28,7 @@ class CashFeatures(Balance, Expression):
     cash__mean_abs_diff_last_2_months: it.Float64 = None
 
     @classmethod
+    @override
     def from_expression(cls, inputs: IbisTable[Balance]):
         cols = inputs.cols
         table = inputs.table @ TimeSeriesFeatureExtraction(
@@ -47,6 +50,7 @@ class CashFeaturesOverTwoWindows(Balance, Expression):
     cash__mean_abs_diff_last_3: it.Float64 = None
 
     @classmethod
+    @override
     def from_expression(cls, inputs: IbisTable[Balance]):
         cols = inputs.cols
         table = inputs.table @ TimeSeriesFeatureExtraction(
@@ -79,6 +83,7 @@ class CashAndDebtFeatures(CashAndDebt, Expression):
     debt__mean_abs_diff_last_3: it.Float64 = None
 
     @classmethod
+    @override
     def from_expression(cls, inputs: IbisTable[CashAndDebt]):
         cols = inputs.cols
         table = inputs.table @ TimeSeriesFeatureExtraction(
@@ -103,6 +108,7 @@ class WholeUnitCashFeatures(WholeUnitBalance, Expression):
     cash__mean_abs_diff_last_2: it.Float64 = None
 
     @classmethod
+    @override
     def from_expression(cls, inputs: IbisTable[WholeUnitBalance]):
         cols = inputs.cols
         table = inputs.table @ TimeSeriesFeatureExtraction(
@@ -131,6 +137,7 @@ class ObservedCashSpectralFeatures(ObservedBalance, Expression):
     cash__median_frequency_last_4: it.Float64 = None
 
     @classmethod
+    @override
     def from_expression(cls, inputs: IbisTable[ObservedBalance]):
         cols = inputs.cols
         table = inputs.table @ TimeSeriesFeatureExtraction(
@@ -158,6 +165,7 @@ class UnkeyedCashFeatures(Cash, Expression):
     cash__median_frequency_last_3: it.Float64 = None
 
     @classmethod
+    @override
     def from_expression(cls, inputs: IbisTable[Cash]):
         cols = inputs.cols
         table = inputs.table @ TimeSeriesFeatureExtraction(
@@ -171,7 +179,7 @@ class UnkeyedCashFeatures(Cash, Expression):
         return cls.of(table)
 
 
-def test_without_keys_the_whole_table_is_one_series(evaluate_table):
+def test_without_keys_the_whole_table_is_one_series(evaluate_table: EvaluateTable):
     def iter_rows():
         yield Cash(month=JANUARY, cash=3.0)
         yield Cash(month=FEBRUARY, cash=1.0)
@@ -201,7 +209,7 @@ def test_without_keys_the_whole_table_is_one_series(evaluate_table):
 
 
 def test_each_month_gets_the_features_of_itself_and_the_previous_month(
-    evaluate_table,
+    evaluate_table: EvaluateTable,
 ):
     def iter_rows():
         yield Balance(tenant=123, month=JANUARY, monetary_amount=10.0, currency="SEK")
@@ -242,7 +250,7 @@ def test_each_month_gets_the_features_of_itself_and_the_previous_month(
     assert actual == expected
 
 
-def test_each_tenant_is_its_own_series(evaluate_table):
+def test_each_tenant_is_its_own_series(evaluate_table: EvaluateTable):
     def iter_rows():
         yield Balance(tenant=123, month=JANUARY, monetary_amount=10.0)
         yield Balance(tenant=123, month=FEBRUARY, monetary_amount=12.0)
@@ -281,7 +289,7 @@ def test_each_tenant_is_its_own_series(evaluate_table):
     assert actual == expected
 
 
-def test_later_months_do_not_change_earlier_results(evaluate_table):
+def test_later_months_do_not_change_earlier_results(evaluate_table: EvaluateTable):
     def iter_rows():
         # The same first two months; only March differs.
         yield Balance(tenant=123, month=JANUARY, monetary_amount=10.0)
@@ -320,7 +328,7 @@ def test_later_months_do_not_change_earlier_results(evaluate_table):
     assert actual == expected
 
 
-def test_months_are_ordered_by_month_not_by_row_order(evaluate_table):
+def test_months_are_ordered_by_month_not_by_row_order(evaluate_table: EvaluateTable):
     def iter_rows():
         yield Balance(tenant=123, month=MARCH, monetary_amount=4.0)
         yield Balance(tenant=123, month=JANUARY, monetary_amount=1.0)
@@ -347,7 +355,7 @@ def test_months_are_ordered_by_month_not_by_row_order(evaluate_table):
     assert actual == expected
 
 
-def test_every_feature_is_computed_for_every_window(evaluate_table):
+def test_every_feature_is_computed_for_every_window(evaluate_table: EvaluateTable):
     def iter_rows():
         yield Balance(tenant=123, month=JANUARY, monetary_amount=1.0)
         yield Balance(tenant=123, month=FEBRUARY, monetary_amount=2.0)
@@ -386,7 +394,9 @@ def test_every_feature_is_computed_for_every_window(evaluate_table):
     assert actual == expected
 
 
-def test_a_window_longer_than_the_series_is_null_everywhere(evaluate_table):
+def test_a_window_longer_than_the_series_is_null_everywhere(
+    evaluate_table: EvaluateTable,
+):
     def iter_rows():
         yield Balance(tenant=123, month=JANUARY, monetary_amount=1.0)
         yield Balance(tenant=123, month=FEBRUARY, monetary_amount=2.0)
@@ -405,7 +415,9 @@ def test_a_window_longer_than_the_series_is_null_everywhere(evaluate_table):
     assert actual == expected
 
 
-def test_every_value_column_gets_every_feature_and_window(evaluate_table):
+def test_every_value_column_gets_every_feature_and_window(
+    evaluate_table: EvaluateTable,
+):
     def iter_rows():
         yield CashAndDebt(tenant=123, month=JANUARY, cash=10.0, debt=4.0)
         yield CashAndDebt(tenant=123, month=FEBRUARY, cash=12.0, debt=0.0)
@@ -442,7 +454,7 @@ def test_every_value_column_gets_every_feature_and_window(evaluate_table):
     assert actual == expected
 
 
-def test_integer_value_columns_do_not_overflow(evaluate_table):
+def test_integer_value_columns_do_not_overflow(evaluate_table: EvaluateTable):
     def iter_rows():
         yield WholeUnitBalance(tenant=123, month=JANUARY, cash=100)
         yield WholeUnitBalance(tenant=123, month=FEBRUARY, cash=-100)
@@ -461,7 +473,9 @@ def test_integer_value_columns_do_not_overflow(evaluate_table):
     assert actual == expected
 
 
-def test_spectral_features_per_tenant_and_observation_month(evaluate_table):
+def test_spectral_features_per_tenant_and_observation_month(
+    evaluate_table: EvaluateTable,
+):
     # Each (tenant, observation month) is its own series of cash per month, with
     # the expected nunique and median frequency over the last 3 and 4 months. The
     # frequencies are k · 12 / window cycles per year: 4 for 3 months, 3 or 6 for 4.

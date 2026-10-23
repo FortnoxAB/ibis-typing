@@ -10,7 +10,7 @@ SQL_DIR_NAME = "__ibis_sql"
 SQL_DIR = Path(generated.__file__).parent / SQL_DIR_NAME
 
 
-def test_generate_ibis_dbt_sql(update_expected):
+def test_generate_ibis_dbt_sql(update_expected: bool):
     model_lookup = dbt_models.get_dbt_model_lookup()
     source_lookup = dbt_models.get_dbt_source_lookup()
     ref_provider = DbtRefTableProvider(model_lookup, source_lookup)

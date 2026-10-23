@@ -23,7 +23,7 @@ class NameProvider(Protocol):
 class SuffixNameProvider(NameProvider):
     suffix: str = ""
 
-    def __call__(self, expression):
+    def __call__(self, expression: type[Expression]) -> str:
         return expression.__name__ + self.suffix
 
 
@@ -35,7 +35,7 @@ def create_package_index(modules: Iterable[str]) -> tuple[str, str]:
 
 
 def create_package_module(
-    table: IbisTable, name_provider: NameProvider
+    table: IbisTable[Expression], name_provider: NameProvider
 ) -> tuple[str, str]:
     name = naming.snake_case(name_provider(table.table_schema))
     content = create_ibis_bindings_module([table], name_provider)
@@ -57,7 +57,8 @@ def create_ibis_bindings_package_index(modules: list[str]) -> str:
 
 
 def create_ibis_bindings_module(
-    tables: list[IbisTable], name_provider: NameProvider = SuffixNameProvider()
+    tables: list[IbisTable[Expression]],
+    name_provider: NameProvider = SuffixNameProvider(),
 ) -> str:
     """Generate bindings modules for a collection of tables.
 
@@ -112,7 +113,9 @@ def create_ibis_bindings_module(
     return complete_module
 
 
-def create_table_dataclass(table: IbisTable, name_provider: NameProvider) -> str:
+def create_table_dataclass(
+    table: IbisTable[Expression], name_provider: NameProvider
+) -> str:
     class_name = name_provider(table.table_schema)
     schema = table.table.schema()
     fields = [

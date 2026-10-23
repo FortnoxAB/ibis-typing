@@ -21,7 +21,7 @@ from ibis_typing.samples.sample_transforms import CircleParameters
 my_namespace = ("my_database", "my_schema")
 
 
-def get_dbt_model_lookup() -> Mapping[type[Expression], DbtModel]:
+def get_dbt_model_lookup() -> Mapping[type[Expression], DbtModel[Expression]]:
     resolver = dbt_model_resolver.DbtModelResolver(samples)
 
     models = {
@@ -52,7 +52,7 @@ def get_dbt_model_lookup() -> Mapping[type[Expression], DbtModel]:
     return {model.expr: model for model in all_models}
 
 
-def get_dbt_source_lookup() -> Mapping[type[IbisSchema], DbtSource]:
+def get_dbt_source_lookup() -> Mapping[type[IbisSchema], DbtSource[IbisDbSchema]]:
     sources = [Calendar, CircleParameters]
     return {schema: DbtSource(as_db_schema(schema)) for schema in sources}
 

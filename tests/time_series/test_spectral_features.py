@@ -6,6 +6,7 @@ import pytest
 from hypothesis import given
 
 from ibis_typing.time_series.features import MedianFrequency
+from tests.time_series.conftest import Trailing
 from tests.time_series.reference import (
     approx,
     each_window,
@@ -13,6 +14,7 @@ from tests.time_series.reference import (
     median_frequency,
     window_sizes,
 )
+from tests.time_series.series import Value
 
 
 def wave(cycles: int, window_size: int) -> list[float]:
@@ -54,21 +56,25 @@ def wave(cycles: int, window_size: int) -> list[float]:
     ],
 )
 def test_median_frequency_of_the_trailing_window(
-    trailing, values, window_size, expected
+    trailing: Trailing, values: list[Value], window_size: int, expected: list[Value]
 ):
     actual = trailing(values, MedianFrequency(), window_size=window_size)
     assert actual == approx(expected)
 
 
 @pytest.mark.parametrize("trend", [0.0, 5.0, -250.0])
-def test_a_linear_trend_does_not_change_the_median_frequency(trailing, trend):
+def test_a_linear_trend_does_not_change_the_median_frequency(
+    trailing: Trailing, trend: float
+):
     values = [value + trend * position for position, value in enumerate(wave(2, 12))]
     actual = trailing(values, MedianFrequency(), window_size=12)
     assert actual[-1] == pytest.approx(2 / 12)
 
 
 @given(values=finite_series(), window_size=window_sizes(min_size=3))
-def test_median_frequency_matches_the_reference(trailing, values, window_size):
+def test_median_frequency_matches_the_reference(
+    trailing: Trailing, values: list[float], window_size: int
+):
     assert trailing(values, MedianFrequency(), window_size=window_size) == approx(
         each_window(median_frequency, values, window_size)
     )

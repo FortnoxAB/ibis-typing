@@ -11,7 +11,7 @@ from ibis_typing.utils import StrDate
 
 
 @pytest.fixture
-def fix_ibis_time(monkeypatch) -> Callable[[StrDate], None]:
+def fix_ibis_time(monkeypatch: pytest.MonkeyPatch) -> Callable[[StrDate], None]:
     def set_fix_time(date: StrDate):
         monkeypatch.setattr(
             PatchTarget.of(ibis_time).now,
@@ -22,7 +22,7 @@ def fix_ibis_time(monkeypatch) -> Callable[[StrDate], None]:
 
 
 @pytest.fixture
-def today(fix_ibis_time):
+def today(fix_ibis_time: Callable[[StrDate], None]) -> StrDate:
     today = StrDate("2023-01-15")
     fix_ibis_time(today)
     return today

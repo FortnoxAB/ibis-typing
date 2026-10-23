@@ -10,7 +10,7 @@ from typing import Any
 
 import attrs
 
-from ibis_typing import ChecksumBuckets
+from ibis_typing import ChecksumBuckets, Expression
 
 from ..revertible import AsRevertible, ExpressionExport
 from . import dbt_ibis_constructor
@@ -20,7 +20,7 @@ from .dbt_snapshot import DbtSnapshot
 
 
 def dbt_model_to_dbt_sql(
-    model: DbtModel, dialect: str, *, ref_provider: DbtRefTableProvider
+    model: DbtModel[Expression], dialect: str, *, ref_provider: DbtRefTableProvider
 ) -> str:
     if isinstance(model, DbtSnapshot):
         return dbt_snapshot_to_dbt_sql(model, dialect, ref_provider=ref_provider)
@@ -53,7 +53,11 @@ def dbt_model_to_dbt_sql(
 
 
 def dbt_snapshot_to_dbt_sql(
-    snapshot: DbtSnapshot, dialect: str, *, ref_provider: DbtRefTableProvider
+    # Narrowing a `DbtModel[Expression]` keeps a type argument outside the bound.
+    snapshot: DbtSnapshot[Any],
+    dialect: str,
+    *,
+    ref_provider: DbtRefTableProvider,
 ) -> str:
     exported = snapshot.expr.origin @ AsRevertible(ExpressionExport)
     snapshot_table = dbt_ibis_constructor.construct_dbt_model(exported, ref_provider)
@@ -128,7 +132,7 @@ def process_sql_dbt_tokens(sql: str) -> str:
         ),
     ]
 
-    def reduce(sub, s):
+    def reduce(sub: tuple[re.Pattern[str], str], s: str) -> str:
         pattern, new = sub
         return pattern.sub(new, s)
 

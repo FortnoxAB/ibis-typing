@@ -25,8 +25,8 @@ def _replace_ibis_connection_fixture(_):
 @pytest.fixture(params=list(IbisBackends))
 def any_ibis_connection(
     request: pytest.FixtureRequest,
-    trino_connection,
-    duck_connection,
+    trino_connection: IbisConnection,
+    duck_connection: IbisConnection,
 ) -> IbisConnection:
     backend = cast(IbisBackends, request.param)
 
@@ -40,7 +40,7 @@ def any_ibis_connection(
 
 @pytest.fixture
 def duck_ibis_connection(
-    request: pytest.FixtureRequest, duck_connection
+    request: pytest.FixtureRequest, duck_connection: IbisConnection
 ) -> IbisConnection:
     skip_if_backend_is_deselected(IbisBackends.duck, request)
 
@@ -50,7 +50,7 @@ def duck_ibis_connection(
 @pytest.fixture
 def trino_ibis_connection(
     request: pytest.FixtureRequest,
-    trino_connection,
+    trino_connection: IbisConnection,
 ) -> IbisConnection:
     skip_if_backend_is_deselected(IbisBackends.trino, request)
 
@@ -64,7 +64,7 @@ def ibis_connection() -> IbisConnection:
 
 
 @pytest.fixture
-def ibis_dialect(ibis_connection) -> str:
+def ibis_dialect(ibis_connection: IbisConnection) -> str:
     return ibis_connection.dialect
 
 

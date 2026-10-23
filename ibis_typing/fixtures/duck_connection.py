@@ -7,7 +7,7 @@ from ibis_typing import IbisConnection
 
 
 @pytest.fixture
-def duck_connection(monkeypatch):
+def duck_connection(monkeypatch: pytest.MonkeyPatch) -> IbisDuckConnection:
     return IbisDuckConnection()
 
 

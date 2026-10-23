@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 from enum import StrEnum
-from typing import ClassVar
+from typing import ClassVar, override
 
 import attrs
 import ibis
@@ -62,7 +62,8 @@ class Join(TableMethod):
 
     _how: ClassVar[JoinMethod]
 
-    def apply(self, table):
+    @override
+    def apply(self, table: Table) -> Table:
         kwargs = attrs.asdict(self)
         tables = kwargs.pop("tables")
         return join(table, *tables, **kwargs)
@@ -94,7 +95,8 @@ class OuterJoin(Join):
 class OuterJoinParallel(Join):
     _how = JoinMethod.OUTER
 
-    def apply(self, table):
+    @override
+    def apply(self, table: Table) -> Table:
         kwargs = attrs.asdict(self)
         kwargs.pop("how")
         tables = kwargs.pop("tables")

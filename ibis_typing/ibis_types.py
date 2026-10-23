@@ -109,11 +109,11 @@ type AnyType = (
     | Time
     | UUID
     # Non-typed collections
-    | Struct
+    | Struct[Any]
     | JSON
     # Collections
-    | Array
-    | Map
+    | Array[Any]
+    | Map[Any, Any]
 )
 
 
@@ -148,12 +148,12 @@ type TypeConstructorMap[T: AnyType] = Mapping[T, type[core.DataType]]
 def to_ibis_core_type(ibis_type: AnyType) -> core.DataType:
     """Convert an IbisSchema type to an Ibis core type."""
 
-    container_constructors: TypeConstructorMap = {
+    container_constructors: TypeConstructorMap[AnyType] = {
         Array: core.Array,
         Map: core.Map,
         Struct: core.Struct,
     }
-    simple_type_lookup: TypeMap = {
+    simple_type_lookup: TypeMap[AnyType] = {
         # Primitive types (bit-specific)
         Int8: core.int8,
         Int16: core.int16,

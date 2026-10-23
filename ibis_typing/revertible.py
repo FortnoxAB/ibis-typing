@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+from typing import Any, cast, override
 
 import ibis
 from attrs import frozen
@@ -63,7 +64,7 @@ class RevertibleTableExpression[S: IbisSchema](SingleInputTableExpression[S], ab
     True
     """
 
-    def revert_expression(self, transformed: IbisTable) -> IbisTable[S]:
+    def revert_expression(self, transformed: IbisTable[IbisSchema]) -> IbisTable[S]:
         table = self.revert_call(transformed)
         return self.origin.of(table)
 
@@ -71,33 +72,42 @@ class RevertibleTableExpression[S: IbisSchema](SingleInputTableExpression[S], ab
     def __call__(self, origin: IbisTable[S]) -> ibis.Table: ...
 
     @abc.abstractmethod
-    def revert_call(self, transformed: IbisTable) -> ibis.Table: ...
+    def revert_call(self, transformed: IbisTable[IbisSchema]) -> ibis.Table: ...
 
 
-def revert_all(table: IbisTable) -> IbisTable:
+def revert_all(table: IbisTable[IbisSchema]) -> IbisTable[IbisSchema]:
     """Revert all revertible expressions in the chain."""
     while issubclass((schema := table.table_schema), GenericExpression) and isinstance(
         constructor := schema.get_table_expression(), RevertibleTableExpression
     ):
-        table = constructor.revert_expression(table)
+        # Narrowing a generic class leaves its schema type argument unknown.
+        revertible = cast(RevertibleTableExpression[IbisSchema], constructor)
+        table = revertible.revert_expression(table)
 
     return table
 
 
 @frozen
-class AsRevertible[E: ExpressionExport](ExpressionMethod):
+class AsRevertible[E: ExpressionExport[AsRevertible[Any]]](
+    ExpressionMethod[IbisSchema, GenericExpression]
+):
     """Wrap any non-parametric ExpressionExport as an ExpressionMethod.
 
     For any parametric ExpressionExport, implement a parametric ExpressionMethod instead."""
 
     revertible: type[E]
 
-    def apply(self, schema):
-        return self.revertible(schema, self)
+    @override
+    def apply(self, schema: type[IbisSchema]) -> ExpressionExport[AsRevertible[Any]]:
+        # Upcast to specialize the `method` parameter of the constructor.
+        revertible: type[ExpressionExport[AsRevertible[Any]]] = self.revertible
+        return revertible(schema, self)
 
 
 @frozen
-class ExpressionExport[R: ExpressionMethod](RevertibleTableExpression):
+class ExpressionExport[R: ExpressionMethod[Any, Any]](
+    RevertibleTableExpression[IbisSchema]
+):
     """Basic revertible transform, composable with `Schema @ AsRevertible(ExportExpression)`.
 
     All parameters except for origin schema is kept in the ExpressionMethod.
@@ -106,28 +116,33 @@ class ExpressionExport[R: ExpressionMethod](RevertibleTableExpression):
 
     method: R
 
-    def __call__(self, origin):
+    @override
+    def __call__(self, origin: IbisTable[IbisSchema]) -> ibis.Table:
         return origin.table
 
-    def revert_call(self, transformed):
+    @override
+    def revert_call(self, transformed: IbisTable[IbisSchema]) -> ibis.Table:
         return transformed.table
 
     @property
+    @override
     def generated_class_name(self) -> str:
         return self.origin.__name__
 
 
-class UUIDToStringExport(ExpressionExport):
+class UUIDToStringExport(ExpressionExport[AsRevertible[Any]]):
     """Cast UUID to strings for e.g. Apache Hive compatibility.
 
     See
     https://hive.apache.org/docs/latest/language/languagemanual-types/
     """
 
-    def __call__(self, origin: IbisTable):
+    @override
+    def __call__(self, origin: IbisTable[IbisSchema]) -> ibis.Table:
         return origin.table.cast(dict.fromkeys(self._get_uuid_casts(), dt.string))
 
-    def revert_call(self, transformed: IbisTable):
+    @override
+    def revert_call(self, transformed: IbisTable[IbisSchema]) -> ibis.Table:
         return transformed.table.cast(dict.fromkeys(self._get_uuid_casts(), dt.uuid))
 
     def _get_uuid_casts(self):

@@ -39,9 +39,9 @@ logger = logging.getLogger(__name__)
 
 def from_expression[E: Expression](
     target_table: type[E],
-    *inputs: IbisTable,
+    *inputs: IbisTable[IbisSchema],
     table_providers: TableProviders = (),
-    cache: MutableMapping[type[IbisSchema], IbisTable] | None = None,
+    cache: MutableMapping[type[IbisSchema], IbisTable[IbisSchema]] | None = None,
 ) -> IbisTable[E]:
     # Enable explicit cache to allow checking evaluated Expression tree.
     cache = cache if cache is not None else {}
@@ -156,7 +156,7 @@ class ExpressionTableProvider:
     """Provides Expression tables recursively, and raises on missing inputs."""
 
     table_providers: TableProviders
-    cache: MutableMapping
+    cache: MutableMapping[type[IbisSchema], IbisTable[IbisSchema]]
 
     def __call__[S: IbisSchema](self, schema: type[S]) -> IbisTable[S] | None:
         if not issubclass(schema, Expression):
@@ -174,7 +174,7 @@ class ExpressionTableProvider:
 class RaiseWithSchemaTrace(TableProvider):
     """Raise ValueError with trace from input -> output schema."""
 
-    def __call__(self, schema):
+    def __call__[S: IbisSchema](self, schema: type[S]) -> IbisTable[S] | None:
         schemas = _get_call_arg_from_stack(_chained(), filename=table_provider.__file__)
         top_schemas = _get_call_arg_from_stack(from_expression, filename=__file__)
 
@@ -187,7 +187,7 @@ class RaiseWithSchemaTrace(TableProvider):
 
 def _get_call_arg_from_stack(
     fun: typing.Callable[..., typing.Any], filename: str
-) -> list:
+) -> list[typing.Any]:
     param = next(iter(inspect.signature(fun).parameters))
     name = getattr(fun, "__name__", None)
     return [
@@ -206,7 +206,7 @@ class ChecksumBucketsIncrementTableProvider(TableProvider):
     table_providers: TableProviders
     prior_providers: TableProviders
 
-    def __call__(self, schema):
+    def __call__[S: IbisSchema](self, schema: type[S]) -> IbisTable[S] | None:
         if not issubclass(schema, ChecksumBuckets):
             return None
 

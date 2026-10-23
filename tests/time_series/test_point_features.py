@@ -17,6 +17,7 @@ from ibis_typing.time_series.features import (
     StandardDeviation,
     Sum,
 )
+from tests.time_series.conftest import Trailing
 from tests.time_series.reference import (
     approx,
     each_window,
@@ -26,6 +27,7 @@ from tests.time_series.reference import (
     standard_deviation,
     window_sizes,
 )
+from tests.time_series.series import Value
 
 
 @pytest.mark.parametrize(
@@ -38,12 +40,14 @@ from tests.time_series.reference import (
         ([1.0], [None]),
     ],
 )
-def test_sum_of_the_trailing_window(trailing, values, expected):
+def test_sum_of_the_trailing_window(
+    trailing: Trailing, values: list[Value], expected: list[Value]
+):
     assert trailing(values, Sum(), window_size=3) == expected
 
 
 @given(values=finite_series(), window_size=window_sizes())
-def test_sum_matches_numpy(trailing, values, window_size):
+def test_sum_matches_numpy(trailing: Trailing, values: list[float], window_size: int):
     assert trailing(values, Sum(), window_size=window_size) == approx(
         each_window(np.sum, values, window_size)
     )
@@ -59,12 +63,14 @@ def test_sum_matches_numpy(trailing, values, window_size):
         ([1.0], [None]),
     ],
 )
-def test_mean_of_the_trailing_window(trailing, values, expected):
+def test_mean_of_the_trailing_window(
+    trailing: Trailing, values: list[Value], expected: list[Value]
+):
     assert trailing(values, Mean(), window_size=3) == expected
 
 
 @given(values=finite_series(), window_size=window_sizes())
-def test_mean_matches_numpy(trailing, values, window_size):
+def test_mean_matches_numpy(trailing: Trailing, values: list[float], window_size: int):
     assert trailing(values, Mean(), window_size=window_size) == approx(
         each_window(np.mean, values, window_size)
     )
@@ -82,12 +88,16 @@ def test_mean_matches_numpy(trailing, values, window_size):
         ([1.0], [None]),
     ],
 )
-def test_min_of_the_trailing_window(trailing, values, expected):
+def test_min_of_the_trailing_window(
+    trailing: Trailing, values: list[Value], expected: list[Value]
+):
     assert trailing(values, Min(), window_size=3) == expected
 
 
 @given(values=finite_series(), window_size=window_sizes())
-def test_min_matches_the_builtin(trailing, values, window_size):
+def test_min_matches_the_builtin(
+    trailing: Trailing, values: list[float], window_size: int
+):
     assert trailing(values, Min(), window_size=window_size) == approx(
         each_window(min, values, window_size)
     )
@@ -103,12 +113,16 @@ def test_min_matches_the_builtin(trailing, values, window_size):
         ([1.0], [None]),
     ],
 )
-def test_max_of_the_trailing_window(trailing, values, expected):
+def test_max_of_the_trailing_window(
+    trailing: Trailing, values: list[Value], expected: list[Value]
+):
     assert trailing(values, Max(), window_size=3) == expected
 
 
 @given(values=finite_series(), window_size=window_sizes())
-def test_max_matches_the_builtin(trailing, values, window_size):
+def test_max_matches_the_builtin(
+    trailing: Trailing, values: list[float], window_size: int
+):
     assert trailing(values, Max(), window_size=window_size) == approx(
         each_window(max, values, window_size)
     )
@@ -124,7 +138,9 @@ def test_max_matches_the_builtin(trailing, values, window_size):
         ([1.0], [None]),
     ],
 )
-def test_count_of_the_trailing_window(trailing, values, expected):
+def test_count_of_the_trailing_window(
+    trailing: Trailing, values: list[Value], expected: list[Value]
+):
     assert trailing(values, Count(), window_size=3) == expected
 
 
@@ -138,12 +154,16 @@ def test_count_of_the_trailing_window(trailing, values, expected):
         ([1.0], [None]),
     ],
 )
-def test_nunique_of_the_trailing_window(trailing, values, expected):
+def test_nunique_of_the_trailing_window(
+    trailing: Trailing, values: list[Value], expected: list[Value]
+):
     assert trailing(values, NUnique(), window_size=3) == expected
 
 
 @given(values=finite_series(), window_size=window_sizes())
-def test_nunique_matches_the_reference(trailing, values, window_size):
+def test_nunique_matches_the_reference(
+    trailing: Trailing, values: list[float], window_size: int
+):
     assert trailing(values, NUnique(), window_size=window_size) == each_window(
         nunique, values, window_size
     )
@@ -158,12 +178,16 @@ def test_nunique_matches_the_reference(trailing, values, window_size):
         ([1.0], [None]),
     ],
 )
-def test_approx_median_of_the_trailing_window(trailing, values, expected):
+def test_approx_median_of_the_trailing_window(
+    trailing: Trailing, values: list[Value], expected: list[Value]
+):
     assert trailing(values, ApproxMedian(), window_size=3) == expected
 
 
 @given(values=finite_series(), window_size=window_sizes())
-def test_approx_median_lies_within_the_window(trailing, values, window_size):
+def test_approx_median_lies_within_the_window(
+    trailing: Trailing, values: list[float], window_size: int
+):
     medians = trailing(values, ApproxMedian(), window_size=window_size)
     windows = each_window(list, values, window_size)
     for median, window in zip(medians, windows, strict=True):
@@ -189,14 +213,16 @@ def test_approx_median_lies_within_the_window(trailing, values, window_size):
     ],
 )
 def test_standard_deviation_of_the_trailing_window(
-    trailing, values, window_size, expected
+    trailing: Trailing, values: list[Value], window_size: int, expected: list[Value]
 ):
     actual = trailing(values, StandardDeviation(), window_size=window_size)
     assert actual == approx(expected)
 
 
 @given(values=finite_series(), window_size=window_sizes())
-def test_standard_deviation_matches_the_reference(trailing, values, window_size):
+def test_standard_deviation_matches_the_reference(
+    trailing: Trailing, values: list[float], window_size: int
+):
     assert trailing(values, StandardDeviation(), window_size=window_size) == approx(
         each_window(standard_deviation, values, window_size)
     )
@@ -215,12 +241,16 @@ def test_standard_deviation_matches_the_reference(trailing, values, window_size)
         ([1.0], 3, [None]),
     ],
 )
-def test_mean_abs_diff_of_the_trailing_window(trailing, values, window_size, expected):
+def test_mean_abs_diff_of_the_trailing_window(
+    trailing: Trailing, values: list[Value], window_size: int, expected: list[Value]
+):
     assert trailing(values, MeanAbsDiff(), window_size=window_size) == expected
 
 
 @given(values=finite_series(), window_size=window_sizes())
-def test_mean_abs_diff_matches_the_reference(trailing, values, window_size):
+def test_mean_abs_diff_matches_the_reference(
+    trailing: Trailing, values: list[float], window_size: int
+):
     assert trailing(values, MeanAbsDiff(), window_size=window_size) == approx(
         each_window(mean_abs_diff, values, window_size)
     )

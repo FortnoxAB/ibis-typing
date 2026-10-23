@@ -35,7 +35,7 @@ def snake_case(name: str) -> str:
     return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
 
 
-def safe_name(name: str, number_prefix="d") -> str:
+def safe_name(name: str, number_prefix: str = "d") -> str:
     """Create safe Python names.
 
     >>> safe_name("safe_name")

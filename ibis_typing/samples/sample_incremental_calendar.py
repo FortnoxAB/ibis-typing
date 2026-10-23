@@ -1,3 +1,5 @@
+from typing import override
+
 from attrs import frozen
 
 from ibis_typing import it, this
@@ -27,6 +29,7 @@ class CalendarWidth(sample_schemas.CalendarWidth, BucketedInputsExpression):
     )
 
     @classmethod
+    @override
     def from_expression(cls, inputs: IbisTable[Calendar]):
         cols = inputs.cols
 

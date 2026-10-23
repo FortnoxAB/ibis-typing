@@ -48,7 +48,7 @@ class DateAddDay(Binary):
 @deferrable
 class ColumnChecksum(Filterable, Reduction):
     # Like ibis reductions, the ibis Annotable signature places `arg` before `where`.
-    arg: Value  # pyrefly: ignore[bad-class-definition]
+    arg: Value[Any]  # pyrefly: ignore[bad-class-definition]
 
     @property
     def dtype(self):
@@ -68,7 +68,7 @@ class JsonParse(Unary):
 class JsonFormat(Unary):
     """Format a json object as a string"""
 
-    arg: Value
+    arg: Value[Any]
 
     @property
     def dtype(self):
@@ -103,7 +103,7 @@ class LiteralTable(Relation):
     Note: Does not support Struct values.
     """
 
-    data: tuple[tuple, ...]
+    data: tuple[tuple[Any, ...], ...]
 
     schema: Schema
     name: str
@@ -113,12 +113,16 @@ class LiteralTable(Relation):
         return FrozenOrderedDict()
 
     @classmethod
-    def from_rows(cls, rows: Iterable, schema: ibis.Schema, name: str) -> Self:
+    def from_rows(
+        cls, rows: Iterable[Iterable[Any]], schema: ibis.Schema, name: str
+    ) -> Self:
         data = tuple(tuple(cls.literal(val) for val in row) for row in rows)
         return cls(data=data, schema=schema, name=name)
 
     @classmethod
-    def to_values(cls, data) -> tuple[tuple, ...]:
+    def to_values(
+        cls, data: tuple[tuple[Any, ...], ...]
+    ) -> tuple[tuple[Any, ...], ...]:
         return tuple(tuple(cls.from_literal(val) for val in row) for row in data)
 
     @classmethod

@@ -7,6 +7,7 @@ import ibis
 import pytest
 from ibis import literal as l
 
+from ibis_typing.fixtures.expressions import EvaluateExpr
 from ibis_typing.ibis_ops import (
     ColumnChecksum,
     IntToUUID,
@@ -17,7 +18,7 @@ from ibis_typing.ibis_ops import (
 
 
 @pytest.mark.parametrize("value", [0, 1, 2])
-def test_column_checksum(evaluate_expr, ibis_dialect, value):
+def test_column_checksum(evaluate_expr: EvaluateExpr, ibis_dialect: str, value: int):
     rows = [
         value + 1,
         value + 2,
@@ -36,7 +37,7 @@ def test_column_checksum(evaluate_expr, ibis_dialect, value):
     assert actual == expected
 
 
-def test_json_roundtrip(evaluate_expr):
+def test_json_roundtrip(evaluate_expr: EvaluateExpr):
     expected = {"string": "value", "number": 42, "object": {"array": [1, 2, 3]}}
     expr = l(json.dumps(expected)) @ JsonParse() @ JsonFormat()
     actual = evaluate_expr(expr)
@@ -46,7 +47,7 @@ def test_json_roundtrip(evaluate_expr):
 @pytest.mark.parametrize(
     ["int_", "uuid_"], [(1, uuid.UUID(int=1)), (-1, uuid.UUID(int=2**64 - 1))]
 )
-def test_uuid_from_int(evaluate_expr, int_, uuid_):
+def test_uuid_from_int(evaluate_expr: EvaluateExpr, int_: int, uuid_: uuid.UUID):
     expr = l(int_) @ IntToUUID()
     expected = uuid_
     actual = evaluate_expr(expr)
@@ -61,7 +62,7 @@ def test_uuid_from_int(evaluate_expr, int_, uuid_):
         ("9503271415", False),
     ],
 )
-def test_luhn_check(evaluate_expr, pnr, is_valid):
+def test_luhn_check(evaluate_expr: EvaluateExpr, pnr: str, is_valid: bool):
     expr = l(pnr) @ LuhnCheck()
     expected = is_valid
     actual = evaluate_expr(expr)

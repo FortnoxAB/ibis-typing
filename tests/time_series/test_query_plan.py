@@ -5,11 +5,17 @@ from collections.abc import Sequence
 import ibis
 import pytest
 
-from ibis_typing.time_series.features import MeanAbsDiff, MedianFrequency, NUnique, Sum
+from ibis_typing.time_series.features import (
+    MeanAbsDiff,
+    MedianFrequency,
+    NUnique,
+    Sum,
+    TimeSeriesFeature,
+)
 from tests.time_series.series import extraction, table
 
 
-def sql(*features, windows: Sequence[int] = (3,)) -> str:
+def sql(*features: TimeSeriesFeature, windows: Sequence[int] = (3,)) -> str:
     extracted = table([1.0, 2.0, 4.0]) @ extraction(*features, windows=windows)
     return ibis.to_sql(extracted, dialect="duckdb").upper()
 
@@ -36,7 +42,7 @@ def test_joins_grow_linearly_with_the_number_of_windows():
 
 
 @pytest.mark.parametrize("dialect", ("duckdb", "trino"))
-def test_sql_size_grows_linearly_with_the_number_of_windows(dialect):
+def test_sql_size_grows_linearly_with_the_number_of_windows(dialect: str):
     points = ibis.table(
         {"key": "string", "time": "int64", "a": "float64", "b": "float64"},
         name="points",

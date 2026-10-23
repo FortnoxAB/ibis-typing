@@ -3,6 +3,7 @@
 import datetime
 import typing
 from collections.abc import Mapping, Sequence
+from typing import Any
 
 import attrs
 from hypothesis import strategies as st
@@ -11,7 +12,7 @@ from ibis_typing import IbisSchema, it
 
 
 @st.composite
-def unique[T](draw, strategy: st.SearchStrategy[T]) -> T:
+def unique[T](draw: st.DrawFn, strategy: st.SearchStrategy[T]) -> T:
     seen = draw(st.shared(st.builds(set), key="key-for-unique-elems"))
     return draw(
         strategy.filter(lambda x: x not in seen).map(lambda x: seen.add(x) or x)
@@ -21,9 +22,10 @@ def unique[T](draw, strategy: st.SearchStrategy[T]) -> T:
 def strategy_for[T: IbisSchema](
     datacls: type[T],
     *,
-    kwargs: Mapping | None = None,
-    fields: Sequence = (),
-    uniques: Sequence = (),
+    # Field names, given as `cols` references typed as their column values.
+    kwargs: Mapping[Any, Any] | None = None,
+    fields: Sequence[Any] = (),
+    uniques: Sequence[Any] = (),
 ) -> st.SearchStrategy[T]:
     const_kwargs = kwargs or {}
     fields = fields or [

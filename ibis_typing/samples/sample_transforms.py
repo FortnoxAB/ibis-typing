@@ -1,4 +1,5 @@
 import math
+from typing import override
 
 from attrs import frozen
 from ibis import literal
@@ -14,6 +15,7 @@ class CircleParameters(IbisSchema):
 
 class Circle(sample_schemas.Circle, Expression):
     @classmethod
+    @override
     def from_expression(cls, params: IbisTable[CircleParameters]):
         cols = params.cols
 

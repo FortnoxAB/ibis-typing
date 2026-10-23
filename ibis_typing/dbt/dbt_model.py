@@ -80,11 +80,11 @@ class GeneralConfig:
     pre_hook: Sequence[str] | None = None
     post_hook: Sequence[str] | None = None
 
-    persist_docs: Mapping | None = None
+    persist_docs: Mapping[str, Any] | None = None
     full_refresh: bool | None = None
-    meta: Mapping | None = None
-    grants: Mapping | None = None
-    contract: Mapping | None = None
+    meta: Mapping[str, Any] | None = None
+    grants: Mapping[str, Any] | None = None
+    contract: Mapping[str, Any] | None = None
     event_time: it.NameOrType | None = None
 
     kwargs: Any | None = None  # Other fields and backend-specific config

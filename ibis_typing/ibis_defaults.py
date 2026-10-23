@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Protocol, cast
+from typing import Protocol, cast, override
 
 import ibis
 from attrs import frozen
@@ -53,7 +53,8 @@ class FillNulls(TableMethod):
     names: Sequence[it.NameOrType]
     default_provider: DefaultProvider = numeric_or_bool_default_provider
 
-    def apply(self, table):
+    @override
+    def apply(self, table: Table) -> Table:
         return fill_nulls(table, *self.names, default_provider=self.default_provider)
 
     def __init__(

@@ -75,7 +75,7 @@ class Select(TableMethod):
     expr: Mapping[it.NameOrType, Value] | None = None
     drop: Sequence[it.NameOrType] = ()
 
-    def apply(self, table):
+    def apply(self, table: Table) -> Table:
         kwargs = attrs.asdict(self)
         names = kwargs.pop("names")
         drop = kwargs.pop("drop")
@@ -102,7 +102,7 @@ class Aggregate(TableMethod):
     min: Iterable[it.NameOrType] = ()
     max: Iterable[it.NameOrType] = ()
 
-    def apply(self, table):
+    def apply(self, table: Table) -> Table:
         kwargs = attrs.asdict(self)
         return aggregate(table, **kwargs)
 
@@ -171,7 +171,7 @@ def select(
     # Allow the `names` argument to be the `expr` mapping if no names are to be selected.
     # This mirrors the default `ibis` API.
     if len(names) == 1 and isinstance(names[0], dict):
-        expr = cast(Mapping, names[0])
+        expr = cast(Mapping[it.NameOrType, Value], names[0])
         names = ()
     else:
         expr = expr or {}

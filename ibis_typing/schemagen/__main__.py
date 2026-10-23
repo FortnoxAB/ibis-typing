@@ -12,6 +12,7 @@ import argparse
 import difflib
 import importlib
 import sys
+from collections.abc import Sequence
 from types import ModuleType
 
 from attrs import frozen
@@ -29,7 +30,7 @@ class Args:
     write: bool
 
 
-def parse_args(argv=None) -> Args:
+def parse_args(argv: Sequence[str] | None = None) -> Args:
     parser = argparse.ArgumentParser()
     arg = parser.add_argument
 
@@ -58,7 +59,7 @@ def parse_args(argv=None) -> Args:
     return Args(**vars(parser.parse_args(argv)))
 
 
-def main(argv=None):
+def main(argv: Sequence[str] | None = None):
     args = parse_args(argv)
 
     print(

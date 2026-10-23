@@ -30,7 +30,7 @@ def provider_from_rows(
     return cast(TableProvider, lookup.get)
 
 
-def chain_providers(*providers) -> TableProvider:
+def chain_providers(*providers: TableProvider) -> TableProvider:
     """Merge a sequence of providers into a single TableProvider."""
 
     def find_provider[T: IbisSchema](schema: type[T]) -> IbisTable[T] | None:
