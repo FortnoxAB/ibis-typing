@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import ibis.expr.datatypes as dt
 from ibis.backends.sql import compilers
@@ -24,7 +24,10 @@ class TrinoCompilerPatch(compilers.TrinoCompiler):
 
 @compiler_extension
 class TrinoCompiler(compilers.TrinoCompiler):
-    agg: Any
+    if TYPE_CHECKING:
+        # The inherited AggGen descriptor returns an untyped attribute accessor.
+        @property
+        def agg(self) -> Any: ...
 
     def visit_ColumnChecksum(self, op: custom_operations.ColumnChecksum, *, arg, where):
         return self.f.from_big_endian_64(self.agg.checksum(arg, where=where))

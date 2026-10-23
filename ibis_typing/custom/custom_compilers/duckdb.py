@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import ibis.expr.datatypes as dt
 import sqlglot.expressions as sg
@@ -17,7 +17,10 @@ __all__ = ["DuckDbCompiler"]
 
 @compiler_extension
 class DuckDbCompiler(compilers.DuckDBCompiler):
-    agg: Any
+    if TYPE_CHECKING:
+        # The inherited AggGen descriptor returns an untyped attribute accessor.
+        @property
+        def agg(self) -> Any: ...
 
     def visit_ColumnChecksum(self, op: custom_operations.ColumnChecksum, *, arg, where):
         checksum = self.agg.bit_xor(self.f.hash(arg), where=where)

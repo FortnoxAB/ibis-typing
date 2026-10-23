@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from typing import Protocol, cast, overload
+from typing import Any, Protocol, cast, overload
 
 import ibis
 from attrs import frozen
@@ -72,7 +72,7 @@ class DbTableProvider(TableProvider):
     @overload
     def __call__[S: IbisSchema](self, schema: type[S]) -> IbisTable[S] | None: ...
 
-    def __call__(self, schema):
+    def __call__(self, schema: type[IbisSchema]) -> IbisTable[Any] | None:
         if not issubclass(schema, IbisDbSchema):
             return None
 
@@ -100,7 +100,7 @@ class FilteredTableProvider(TableProvider):
     include: Sequence[type[IbisSchema]] | None = None
     exclude: Sequence[type[IbisSchema]] | None = None
 
-    def __call__(self, schema):
+    def __call__[S: IbisSchema](self, schema: type[S]) -> IbisTable[S] | None:
         if self.exclude and issubclass(schema, tuple(self.exclude)):
             return None
 

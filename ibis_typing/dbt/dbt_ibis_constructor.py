@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
+from typing import cast
 
 import ibis
 from attrs import frozen
@@ -77,12 +78,12 @@ class DbtSelfRefProvider(TableProvider):
 
     SELF_TOKEN = "__dbt_this__"
 
-    def __call__(self, schema):
+    def __call__[S: IbisSchema](self, schema: type[S]) -> IbisTable[S] | None:
         if not issubclass(schema, self.self_expr):
             return None
 
         table = ibis.table(schema.table_schema, name=self.SELF_TOKEN)
-        return schema.of(table)
+        return cast(IbisTable[S], schema.of(table))
 
 
 @frozen
@@ -96,22 +97,23 @@ class DbtRefTableProvider(TableProvider):
     SRC_TOKEN = "__dbt_src__"
     SEP_TOKEN = "__dbt_sep__"
 
-    def __call__(self, schema):
-        if model := self.model_lookup.get(schema):
-            schema = model.db_schema
-            name = schema.table_name
+    def __call__[S: IbisSchema](self, schema: type[S]) -> IbisTable[S] | None:
+        # The provided table has the DBT db_schema in place of the requested schema.
+        if issubclass(schema, Expression) and (model := self.model_lookup.get(schema)):
+            db_schema = model.db_schema
+            name = db_schema.table_name
 
             ref_name = f"{self.REF_TOKEN}{name}{self.REF_TOKEN}"
-            table = ibis.table(schema.table_schema, name=ref_name)
-            return schema.of(table)
+            table = ibis.table(db_schema.table_schema, name=ref_name)
+            return cast(IbisTable[S], db_schema.of(table))
 
         if source := self.source_lookup.get(schema):
-            schema = source.db_schema
-            name = schema.table_name
+            db_schema = source.db_schema
+            name = db_schema.table_name
             src = source.dbt_source_name
 
             ref_name = f"{self.SRC_TOKEN}{name}{self.SEP_TOKEN}{src}{self.SRC_TOKEN}"
-            table = ibis.table(schema.table_schema, name=ref_name)
-            return schema.of(table)
+            table = ibis.table(db_schema.table_schema, name=ref_name)
+            return cast(IbisTable[S], db_schema.of(table))
 
         return None

@@ -34,7 +34,9 @@ class IbisTransformer(libcst.CSTTransformer):
     def visit_Module(self, node: libcst.Module):
         self._changed = False
 
-    def leave_Call(self, original_node: libcst.Call, updated_node: libcst.Call):
+    def leave_Call(
+        self, original_node: libcst.Call, updated_node: libcst.Call
+    ) -> libcst.BaseExpression:
         for rule in self.rules:
             if node := updated_node @ rule:
                 self._changed = True
@@ -53,22 +55,24 @@ class IbisTransformer(libcst.CSTTransformer):
         return updated_node.with_changes(body=new_body)
 
 
-class CstRule[T: libcst.CSTNode](ExtensionMethod[T, libcst.CSTNode | None], abc.ABC):
+class CstRule[T: libcst.CSTNode, R: libcst.CSTNode](
+    ExtensionMethod[T, R | None], abc.ABC
+):
     """Base for CST rewrite rules.
 
     Implemented as an ExtensionMethod to allow for chaining and deferred application.
     """
 
     @abc.abstractmethod
-    def apply(self, node: T) -> libcst.CSTNode | None:
+    def apply(self, node: T) -> R | None:
         """Apply the rewrite rule to the given node."""
 
-    def __rmatmul__(self, other: T) -> libcst.CSTNode | None:
+    def __rmatmul__(self, other: T) -> R | None:
         return self.apply(other)
 
 
 @frozen
-class IbisFuncToMethodRule(CstRule[libcst.Call]):
+class IbisFuncToMethodRule(CstRule[libcst.Call, libcst.BaseExpression]):
     func: str
     method: str
 

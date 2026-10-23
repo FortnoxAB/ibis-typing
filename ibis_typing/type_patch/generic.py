@@ -253,8 +253,8 @@ class ColumnCast(Column):
     @overload
     def cast(self, target_type: Any) -> Column: ...
 
-    def cast(self, target_type) -> Column:
-        raise NotImplementedError
+    def cast(self, target_type) -> Any:
+        return super().cast(target_type)
 
 
 class ColumnTryCast(Column):
@@ -319,8 +319,8 @@ class ColumnTryCast(Column):
     @overload
     def try_cast(self, target_type: Any) -> Column: ...
 
-    def try_cast(self, target_type) -> Column:
-        raise NotImplementedError
+    def try_cast(self, target_type) -> Any:
+        return super().try_cast(target_type)
 
 
 class ValueFillNull(Value):

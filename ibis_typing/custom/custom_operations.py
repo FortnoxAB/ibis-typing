@@ -47,7 +47,8 @@ class DateAddDay(Binary):
 
 @deferrable
 class ColumnChecksum(Filterable, Reduction):
-    arg: Value
+    # Like ibis reductions, the ibis Annotable signature places `arg` before `where`.
+    arg: Value  # pyrefly: ignore[bad-class-definition]
 
     @property
     def dtype(self):
