@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import cast
-
 import ibis
 from attrs import frozen
 from ibis import Value, ir
@@ -21,5 +19,4 @@ class NullUnless[T: Value](SelfMethod[T]):
 
     def apply(self, value: T):
         null = ibis.null(value.type())
-        # Both branches share the dtype of `value`, hence the same Value type.
-        return cast(T, ibis.ifelse(self.condition, value, null))
+        return ibis.ifelse(self.condition, value, null)
