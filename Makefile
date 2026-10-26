@@ -65,16 +65,14 @@ format:
 	uv run ruff format
 fix:
 	uv run ruff check --fix
-	uv run ty check --fix
 fix_unsafe:
 	uv run ruff check --fix --unsafe-fixes
 add_noqa:
 	uv run ruff check --add-noqa
-	uv run ty check --add-ignore
+	uv run pyrefly check --suppress-errors
 lint:
 	uv run ruff check
 	uv run ruff format --check
-	uv run ty check
 	uv run pyrefly check
 	uv run deptry .
 	uv run complexipy --suggest-refactors
