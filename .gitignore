@@ -8,6 +8,7 @@ __pycache__
 # Python coverage
 .coverage*
 coverage_html_report/
+coverage.xml
 # Python Hypothesis tests
 .hypothesis/
 # Python build outputs

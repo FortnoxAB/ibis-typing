@@ -31,42 +31,25 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync --all-extras
-
-      - name: Apply ibis type patches
-        run: uv run python -m ibis_typing.type_patch
+        run: make deps
 
       - name: Lint
-        run: |
-          uv run ruff check
-          uv run ruff format --check
-          uv run pyrefly check
-          uv run deptry .
+        run: make lint
 
       - name: Unit tests
-        run: uv run coverage run -m pytest --exitfirst --durations=10 -m "not ibis"
+        run: make test_unittests
 
       - name: DuckDB integration tests
-        env:
-          TEST_IBIS_BACKEND: duck
-        run: uv run coverage run -m pytest --exitfirst --durations=10 -m "duck"
+        run: make test_duck
 
       - name: Trino integration tests
-        env:
-          TEST_IBIS_BACKEND: trino
-        run: uv run coverage run -m pytest --exitfirst --durations=10 -m "trino"
+        run: make test_trino
 
       - name: Type patcher tests
-        run: |
-          uv run coverage run -m ibis_typing.type_patch
-          uv run coverage run -m ibis_typing.ide.setup_ide
+        run: uv run coverage run -m ibis_typing.ide.setup_ide
 
       - name: Coverage report
-        run: |
-          uv run coverage combine
-          uv run coverage html
-          uv run coverage xml
-          uv run coverage report --skip-covered --sort=cover --fail-under=90
+        run: make test_coverage
 
       - name: Upload HTML coverage report
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
