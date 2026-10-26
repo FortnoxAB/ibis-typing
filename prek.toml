@@ -10,8 +10,7 @@ hooks = [
 
 [[repos]]
 # Type checking
-repo = "https://github.com/astral-sh/ty-pre-commit"
-rev = "v0.0.48"
+repo = "local"
 hooks = [
-    { id = "ty" },
+    { id = "pyrefly", name = "pyrefly", entry = "uv run pyrefly check", language = "system", types_or = ["python", "pyi"], pass_filenames = false },
 ]

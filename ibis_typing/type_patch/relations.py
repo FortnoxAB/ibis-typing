@@ -203,7 +203,7 @@ class TableDistinct(Table):
         keep: Literal["first", "last"] | None = "first",
     ) -> Table: ...
     @overload
-    def distinct(  # ty:ignore[invalid-overload]
+    def distinct(
         self,
         *,
         on: s.Selector = None,

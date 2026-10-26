@@ -79,7 +79,6 @@ dev = [
     "uv>=0.4",
     # QA
     "coverage>=7",
-    "ty>=0.0.24",
     "prek>=0.4.4",
     "complexipy>=8.0.1",
     "pyrefly>=1.4.0",
@@ -193,9 +192,6 @@ ignore = [
     # pylint Refactor
     "PLR2004", # Magic value used in comparison
 ]
-
-[tool.ty.rules]
-unused-ignore-comment = "error"
 
 [tool.complexipy]
 paths = ["ibis_typing", "tests"]

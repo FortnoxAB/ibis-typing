@@ -61,7 +61,7 @@ make fix      # ruff check --fix
 
 The project uses:
 - **ruff** — linting and formatting
-- **ty** — type checking
+- **pyrefly** — type checking
 - **deptry** — dependency hygiene
 
 ## Making changes

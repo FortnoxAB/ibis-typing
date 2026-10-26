@@ -66,8 +66,7 @@ def test_simple_column_typing(fetch_table: FetchTable, data: SimpleSchema):
     _ = inputs.table @ Select(
         expr={
             col.integer: this[col.integer].bit_and(),
-            # ty promotes `float` to `int | float`, matching the Integer overload too.
-            col.float: this[col.float].isnan(),  # ty:ignore[unresolved-attribute]
+            col.float: this[col.float].isnan(),
             col.boolean: this[col.boolean].all(),
             col.text: this[col.text].lower(),
             col.bytes: this[col.bytes].hashbytes(),

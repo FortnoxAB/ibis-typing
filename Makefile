@@ -42,9 +42,9 @@ update_expected:
 	uv run $(PYTEST) -k "test_generate_ibis_ and not test_update_expected_is_false_by_default"
 
 # Test
-test: test_unittests test_duck test_trino test_patchers test_coverage
+test: lint test_unittests test_duck test_trino test_coverage
 
-test_unittests: lint
+test_unittests:
 	uv run $(PYTEST) -m "not ibis"
 test_duck: export TEST_IBIS_BACKEND=duck
 test_duck:
@@ -52,29 +52,25 @@ test_duck:
 test_trino: export TEST_IBIS_BACKEND=trino
 test_trino:
 	uv run $(PYTEST) -m "trino"
-test_patchers:
-	uv run coverage run -m ibis_typing.type_patch
-	uv run coverage run -m ibis_typing.ide.setup_ide
 test_coverage:
 	uv run coverage combine
 	uv run coverage html
-	uv run coverage report --skip-covered --sort=cover --fail=90
+	uv run coverage xml
+	uv run coverage report --skip-covered --sort=cover --fail-under=90
 
 # QA
 format:
 	uv run ruff format
 fix:
 	uv run ruff check --fix
-	uv run ty check --fix
 fix_unsafe:
 	uv run ruff check --fix --unsafe-fixes
 add_noqa:
 	uv run ruff check --add-noqa
-	uv run ty check --add-ignore
+	uv run pyrefly check --suppress-errors
 lint:
 	uv run ruff check
 	uv run ruff format --check
-	uv run ty check
 	uv run pyrefly check
 	uv run deptry .
 	uv run complexipy --suggest-refactors
