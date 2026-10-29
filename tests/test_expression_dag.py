@@ -24,8 +24,8 @@ class Middle(Expression):
 
     @classmethod
     @override
-    def from_expression(cls, source: IbisTable[Source]):
-        return cls.of(source.table)
+    def from_expression(cls, source: IbisTable[Source]) -> IbisTable["Middle"]:
+        raise NotImplementedError  # Only the signature matters to the DAG.
 
 
 @frozen
@@ -35,8 +35,10 @@ class Top(Expression):
 
     @classmethod
     @override
-    def from_expression(cls, middle: IbisTable[Middle], other: IbisTable[Other]):
-        return cls.of(middle.table.join(other.table))
+    def from_expression(
+        cls, middle: IbisTable[Middle], other: IbisTable[Other]
+    ) -> IbisTable["Top"]:
+        raise NotImplementedError  # Only the signature matters to the DAG.
 
 
 @frozen
