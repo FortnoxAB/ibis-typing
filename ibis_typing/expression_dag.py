@@ -85,21 +85,3 @@ def filter_dag_on_column(
 
     recurse(start_node)
     return found
-
-
-def create_graph(data: ExpressionInputs) -> nx.DiGraph[str]:
-    dag = nx.DiGraph()
-    for target, sources in data.items():
-        target_schema = getattr(target, "table_schema", {})
-        dag.add_node(target.__name__, schema=target_schema)
-        for source in sources:
-            source_schema = getattr(source, "table_schema", {})
-            common_columns = set(target_schema.keys()).intersection(
-                set(source_schema.keys())
-            )
-            dag.add_edge(
-                source.__name__, target.__name__, common_columns=common_columns
-            )
-
-    dag.graph["graph"] = {"rankdir": "TD"}
-    return dag

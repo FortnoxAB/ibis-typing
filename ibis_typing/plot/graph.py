@@ -14,7 +14,6 @@ from matplotlib.figure import Figure
 
 from ibis_typing.expression_dag import (
     ExpressionInputs,
-    create_graph,
     filter_dag_on_column,
     get_expression_dag,
     import_expression_by_name,
@@ -33,6 +32,24 @@ __all__ = [
     "import_expression_by_name",
     "view_dag_with_columns",
 ]
+
+
+def create_graph(data: ExpressionInputs) -> nx.DiGraph[str]:
+    dag = nx.DiGraph()
+    for target, sources in data.items():
+        target_schema = getattr(target, "table_schema", {})
+        dag.add_node(target.__name__, schema=target_schema)
+        for source in sources:
+            source_schema = getattr(source, "table_schema", {})
+            common_columns = set(target_schema.keys()).intersection(
+                set(source_schema.keys())
+            )
+            dag.add_edge(
+                source.__name__, target.__name__, common_columns=common_columns
+            )
+
+    dag.graph["graph"] = {"rankdir": "TD"}
+    return dag
 
 
 class ColorProvider(Protocol):
