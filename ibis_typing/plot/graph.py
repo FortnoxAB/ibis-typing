@@ -1,4 +1,4 @@
-"""Generate a DAG for Expressions."""
+"""Draw the dependency DAG of Expressions."""
 
 from __future__ import annotations
 
@@ -12,26 +12,7 @@ from attrs import frozen
 from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 
-from ibis_typing.expression_dag import (
-    ExpressionInputs,
-    filter_dag_on_column,
-    get_expression_dag,
-    import_expression_by_name,
-)
-
-__all__ = [
-    "ColorProvider",
-    "ColumnColorProvider",
-    "ExpressionInputs",
-    "GraphvizHtml",
-    "NodeColors",
-    "create_graph",
-    "draw_dag",
-    "filter_dag_on_column",
-    "get_expression_dag",
-    "import_expression_by_name",
-    "view_dag_with_columns",
-]
+from ibis_typing.expression_dag import ExpressionInputs
 
 
 def create_graph(data: ExpressionInputs) -> nx.DiGraph[str]:

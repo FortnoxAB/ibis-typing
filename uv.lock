@@ -544,10 +544,8 @@ dependencies = [
     { name = "attrs" },
     { name = "cattrs" },
     { name = "humanize" },
-    { name = "hypothesis" },
     { name = "ibis-framework", extra = ["duckdb", "trino"] },
     { name = "more-itertools" },
-    { name = "networkx" },
     { name = "pyarrow" },
     { name = "sqlglot" },
     { name = "typing-extensions" },
@@ -555,15 +553,24 @@ dependencies = [
 
 [package.optional-dependencies]
 dev = [
+    { name = "graphviz" },
+    { name = "hypothesis" },
     { name = "libcst" },
+    { name = "matplotlib" },
+    { name = "networkx" },
+    { name = "pydot" },
     { name = "pytest" },
     { name = "rope" },
     { name = "ruff" },
     { name = "testcontainers" },
 ]
+hypothesis = [
+    { name = "hypothesis" },
+]
 plot = [
     { name = "graphviz" },
     { name = "matplotlib" },
+    { name = "networkx" },
     { name = "pydot" },
 ]
 
@@ -583,12 +590,13 @@ requires-dist = [
     { name = "cattrs", specifier = ">=24" },
     { name = "graphviz", marker = "extra == 'plot'", specifier = ">=0.21" },
     { name = "humanize", specifier = ">=4" },
-    { name = "hypothesis", specifier = ">=6" },
+    { name = "hypothesis", marker = "extra == 'hypothesis'", specifier = ">=6" },
     { name = "ibis-framework", extras = ["duckdb", "trino"], specifier = ">=9" },
+    { name = "ibis-typing", extras = ["hypothesis", "plot"], marker = "extra == 'dev'" },
     { name = "libcst", marker = "extra == 'dev'", specifier = ">=1.8.6" },
     { name = "matplotlib", marker = "extra == 'plot'", specifier = ">=3" },
     { name = "more-itertools", specifier = ">=10" },
-    { name = "networkx", specifier = ">=3" },
+    { name = "networkx", marker = "extra == 'plot'", specifier = ">=3" },
     { name = "pyarrow", specifier = ">=17" },
     { name = "pydot", marker = "extra == 'plot'", specifier = ">=4" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },
@@ -598,7 +606,7 @@ requires-dist = [
     { name = "testcontainers", marker = "extra == 'dev'", specifier = ">=4" },
     { name = "typing-extensions", specifier = ">=4" },
 ]
-provides-extras = ["plot", "dev"]
+provides-extras = ["plot", "hypothesis", "dev"]
 
 [package.metadata.requires-dev]
 dev = [

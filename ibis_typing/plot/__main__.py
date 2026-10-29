@@ -8,8 +8,8 @@ from pathlib import Path
 
 from attrs import frozen
 
-from ibis_typing import Expression
-from ibis_typing.plot import graph
+from ibis_typing import Expression, expression_dag
+from ibis_typing.plot import cli, graph
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ def main(argv: Sequence[str] | None = None):
     logger.info("Generating DAG for %s", args.tables)
     colors = graph.NodeColors(args.color_by_name or {})
 
-    dag_structure = graph.get_expression_dag(args.tables)
+    dag_structure = expression_dag.get_expression_dag(args.tables)
     dag = graph.create_graph(dag_structure)
     fig = graph.draw_dag(dag, colors=colors)
 
@@ -43,7 +43,7 @@ def parse_args(argv: Sequence[str] | None = None) -> Params:
 
     arg(
         "tables",
-        type=graph.import_expression_by_name,
+        type=cli.import_expression_by_name,
         nargs="+",
         help="List of fully qualified Expression names to include in the DAG.",
     )

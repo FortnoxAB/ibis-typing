@@ -3,16 +3,17 @@ from collections.abc import Sequence
 
 from attrs import frozen
 
+from ibis_typing import expression_dag
 from ibis_typing.expression import Expression
-from ibis_typing.plot import graph
+from ibis_typing.plot import cli, graph
 
 
 def main(argv: Sequence[str] | None = None) -> None:
     args = parse_args(argv)
 
-    dag_structure = graph.get_expression_dag(args.tables)
+    dag_structure = expression_dag.get_expression_dag(args.tables)
     if args.filter:
-        dag_structure = graph.filter_dag_on_column(
+        dag_structure = expression_dag.filter_dag_on_column(
             args.tables[0], dag_structure, args.filter
         )
 
@@ -39,7 +40,7 @@ def parse_args(argv: Sequence[str] | None = None) -> Params:
 
     arg(
         "tables",
-        type=graph.import_expression_by_name,
+        type=cli.import_expression_by_name,
         nargs="+",
         help="List of fully qualified Expression names to include in the DAG.",
     )

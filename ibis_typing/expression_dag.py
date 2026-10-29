@@ -1,29 +1,12 @@
-"""Resolve the dependency DAG between Expressions without any plotting dependencies."""
+"""Resolve the dependency DAG between Expressions using only the standard library."""
 
 from __future__ import annotations
 
-import importlib
 from collections import defaultdict
 from collections.abc import Iterable
-
-import networkx as nx
+from graphlib import TopologicalSorter
 
 from ibis_typing import Expression, IbisSchema
-
-
-def import_expression_by_name(qualified_name: str) -> type[Expression]:
-    """Import Expression classes by qualified name.
-
-    >>> import_expression_by_name("ibis_typing.samples.sample_transforms.Circle")
-    <class 'ibis_typing.samples.sample_transforms.Circle'>
-    """
-
-    package, expr = qualified_name.rsplit(".", 1)
-    module = importlib.import_module(package)
-    table = getattr(module, expr)
-    assert issubclass(table, Expression)
-    return table
-
 
 type ExpressionInputs = dict[type[Expression], list[type[IbisSchema]]]
 
@@ -37,15 +20,10 @@ def get_expression_dag(expressions: Iterable[type[Expression]]) -> ExpressionInp
     """
     schema_input_map: ExpressionInputs = {}
     _add_all_dependencies(expressions, schema_input_map)
-    dag = nx.DiGraph(
-        (source, target)
-        for target, sources in schema_input_map.items()
-        for source in (sources or [IbisSchema])
-        # Keep Expressions without any inputs
-    )
+    sorter: TopologicalSorter[type[IbisSchema]] = TopologicalSorter(schema_input_map)
     return {
         expr: schema_input_map[expr]
-        for expr in nx.topological_sort(dag)
+        for expr in sorter.static_order()
         if issubclass(expr, Expression)
     }
 
