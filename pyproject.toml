@@ -48,17 +48,21 @@ dependencies = [
     # Utilities
     "more-itertools>=10",
     "typing-extensions>=4",
-    # Visualisation (optional runtime utilities)
-    "hypothesis>=6",
     "networkx>=3",
-    "matplotlib>=3",
-    "pydot>=4",
-    "graphviz>=0.21",
     "humanize>=4",
 ]
 
 [project.optional-dependencies]
+plot = [
+    "matplotlib>=3",
+    "pydot>=4",
+    "graphviz>=0.21",
+]
+hypothesis = [
+    "hypothesis>=6",
+]
 dev = [
+    "ibis-typing[hypothesis,plot]",
     # Testing
     "libcst>=1.8.6",
     "pytest>=8",
