@@ -24,8 +24,8 @@ class Middle(Expression):
 
     @classmethod
     @override
-    def from_expression(cls, source: IbisTable[Source]) -> IbisTable["Middle"]:
-        raise NotImplementedError  # Only the signature matters to the DAG.
+    def from_expression(cls, source: IbisTable[Source]):
+        return cls.of(source.table)
 
 
 @frozen
@@ -38,7 +38,7 @@ class Top(Expression):
     def from_expression(
         cls, middle: IbisTable[Middle], other: IbisTable[Other]
     ) -> IbisTable["Top"]:
-        raise NotImplementedError  # Only the signature matters to the DAG.
+        raise NotImplementedError  # Never evaluated: only its inputs' schemas are read.
 
 
 @frozen
@@ -48,7 +48,7 @@ class Leaf(Expression):
     @classmethod
     @override
     def from_expression(cls) -> IbisTable["Leaf"]:
-        raise NotImplementedError  # Only the signature matters to the DAG.
+        raise NotImplementedError  # Never evaluated: only its signature is read.
 
 
 def test_get_expression_dag_orders_inputs_before_dependents():
