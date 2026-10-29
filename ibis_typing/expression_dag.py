@@ -1,10 +1,11 @@
-"""Resolve the dependency DAG between Expressions using only the standard library."""
+"""Resolve the dependency DAG between Expressions."""
 
 from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterable
-from graphlib import TopologicalSorter
+
+import networkx as nx
 
 from ibis_typing import Expression, IbisSchema
 
@@ -20,10 +21,15 @@ def get_expression_dag(expressions: Iterable[type[Expression]]) -> ExpressionInp
     """
     schema_input_map: ExpressionInputs = {}
     _add_all_dependencies(expressions, schema_input_map)
-    sorter: TopologicalSorter[type[IbisSchema]] = TopologicalSorter(schema_input_map)
+    dag = nx.DiGraph(
+        (source, target)
+        for target, sources in schema_input_map.items()
+        for source in (sources or [IbisSchema])
+        # Keep Expressions without any inputs
+    )
     return {
         expr: schema_input_map[expr]
-        for expr in sorter.static_order()
+        for expr in nx.topological_sort(dag)
         if issubclass(expr, Expression)
     }
 
