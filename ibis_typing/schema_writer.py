@@ -8,10 +8,9 @@ from pathlib import Path
 from types import ModuleType
 from typing import cast
 
-from . import evaluator, schema_bindings
+from . import evaluator, expression_dag, schema_bindings
 from .expression import Expression
 from .ibis_adapter import IbisTable
-from .plot import graph
 from .schema_bindings import NameProvider, SuffixNameProvider
 from .table_provider import AbstractTableProvider, TableProviders, get_abstract_table
 
@@ -65,7 +64,7 @@ def generate_schemas(
     """
     expr_to_schema_package = {
         expr: expr_to_schema_package[expr]
-        for expr in graph.get_expression_dag(expr_to_schema_package)
+        for expr in expression_dag.get_expression_dag(expr_to_schema_package)
         if expr in expr_to_schema_package
     }
 

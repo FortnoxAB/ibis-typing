@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'win32'",
@@ -543,26 +543,34 @@ source = { editable = "." }
 dependencies = [
     { name = "attrs" },
     { name = "cattrs" },
-    { name = "graphviz" },
     { name = "humanize" },
-    { name = "hypothesis" },
     { name = "ibis-framework", extra = ["duckdb", "trino"] },
-    { name = "matplotlib" },
     { name = "more-itertools" },
     { name = "networkx" },
     { name = "pyarrow" },
-    { name = "pydot" },
     { name = "sqlglot" },
     { name = "typing-extensions" },
 ]
 
 [package.optional-dependencies]
 dev = [
+    { name = "graphviz" },
+    { name = "hypothesis" },
     { name = "libcst" },
+    { name = "matplotlib" },
+    { name = "pydot" },
     { name = "pytest" },
     { name = "rope" },
     { name = "ruff" },
     { name = "testcontainers" },
+]
+hypothesis = [
+    { name = "hypothesis" },
+]
+plot = [
+    { name = "graphviz" },
+    { name = "matplotlib" },
+    { name = "pydot" },
 ]
 
 [package.dev-dependencies]
@@ -579,16 +587,17 @@ dev = [
 requires-dist = [
     { name = "attrs", specifier = ">=24" },
     { name = "cattrs", specifier = ">=24" },
-    { name = "graphviz", specifier = ">=0.21" },
+    { name = "graphviz", marker = "extra == 'plot'", specifier = ">=0.21" },
     { name = "humanize", specifier = ">=4" },
-    { name = "hypothesis", specifier = ">=6" },
+    { name = "hypothesis", marker = "extra == 'hypothesis'", specifier = ">=6" },
     { name = "ibis-framework", extras = ["duckdb", "trino"], specifier = ">=9" },
+    { name = "ibis-typing", extras = ["hypothesis", "plot"], marker = "extra == 'dev'" },
     { name = "libcst", marker = "extra == 'dev'", specifier = ">=1.8.6" },
-    { name = "matplotlib", specifier = ">=3" },
+    { name = "matplotlib", marker = "extra == 'plot'", specifier = ">=3" },
     { name = "more-itertools", specifier = ">=10" },
     { name = "networkx", specifier = ">=3" },
     { name = "pyarrow", specifier = ">=17" },
-    { name = "pydot", specifier = ">=4" },
+    { name = "pydot", marker = "extra == 'plot'", specifier = ">=4" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },
     { name = "rope", marker = "extra == 'dev'", specifier = ">=1.14.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.7" },
@@ -596,7 +605,7 @@ requires-dist = [
     { name = "testcontainers", marker = "extra == 'dev'", specifier = ">=4" },
     { name = "typing-extensions", specifier = ">=4" },
 ]
-provides-extras = ["dev"]
+provides-extras = ["plot", "hypothesis", "dev"]
 
 [package.metadata.requires-dev]
 dev = [
