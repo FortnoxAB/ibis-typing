@@ -75,16 +75,20 @@ class RevertibleTableExpression[S: IbisSchema](SingleInputTableExpression[S], ab
     def revert_call(self, transformed: IbisTable[IbisSchema]) -> ibis.Table: ...
 
 
-def revert_all(table: IbisTable[IbisSchema]) -> IbisTable[IbisSchema]:
+def revert_all[S: IbisSchema](table: IbisTable[S]) -> IbisTable[IbisSchema]:
     """Revert all revertible expressions in the chain."""
-    while issubclass((schema := table.table_schema), GenericExpression) and isinstance(
+    # Each reversion changes the schema, so the loop cannot keep the input's type.
+    reverted = cast(IbisTable[IbisSchema], table)
+    while issubclass(
+        (schema := reverted.table_schema), GenericExpression
+    ) and isinstance(
         constructor := schema.get_table_expression(), RevertibleTableExpression
     ):
         # Narrowing a generic class leaves its schema type argument unknown.
         revertible = cast(RevertibleTableExpression[IbisSchema], constructor)
-        table = revertible.revert_expression(table)
+        reverted = revertible.revert_expression(reverted)
 
-    return table
+    return reverted
 
 
 @frozen

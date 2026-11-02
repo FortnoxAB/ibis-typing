@@ -39,7 +39,7 @@ class TableStore(TableProvider, Protocol):
     def __contains__(self, schema: type[IbisSchema]) -> bool:
         """Query if table exists in store."""
 
-    def write_table(self, table: IbisTable[IbisSchema]) -> None:
+    def write_table[S: IbisSchema](self, table: IbisTable[S]) -> None:
         """Write table to store."""
 
 
@@ -53,7 +53,7 @@ class NullTableStore(TableStore):
     def __contains__(self, schema: type[IbisSchema]) -> bool:
         return False
 
-    def write_table(self, table: IbisTable[IbisSchema]) -> None:
+    def write_table[S: IbisSchema](self, table: IbisTable[S]) -> None:
         return
 
 
@@ -91,7 +91,7 @@ class LocalTableStore(TableStore, ABC):
     def _rglob(self) -> str:
         return f"**/*.{self._file_suffix}"
 
-    def write_table(self, table: IbisTable[IbisSchema]) -> None:
+    def write_table[S: IbisSchema](self, table: IbisTable[S]) -> None:
         with self.tmp_store() as tmp_store:
             path = tmp_store.get_table_path(table.table_schema)
             tmp_store._write_table(table, path)
@@ -189,7 +189,7 @@ class ParquetTableStore(LocalTableStore):
             self.connection.write_parquet(table, path, **kwargs)
 
     @override
-    def write_table(self, table: IbisTable[IbisSchema]) -> None:
+    def write_table[S: IbisSchema](self, table: IbisTable[S]) -> None:
         super().write_table(table)
 
 
