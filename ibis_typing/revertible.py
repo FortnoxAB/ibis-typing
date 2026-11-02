@@ -75,7 +75,7 @@ class RevertibleTableExpression[S: IbisSchema](SingleInputTableExpression[S], ab
     def revert_call(self, transformed: IbisTable[IbisSchema]) -> ibis.Table: ...
 
 
-def revert_all(table: IbisTable[IbisSchema]) -> IbisTable[IbisSchema]:
+def revert_all(table: IbisTable[Any]) -> IbisTable[IbisSchema]:
     """Revert all revertible expressions in the chain."""
     while issubclass((schema := table.table_schema), GenericExpression) and isinstance(
         constructor := schema.get_table_expression(), RevertibleTableExpression
