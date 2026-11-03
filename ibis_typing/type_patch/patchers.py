@@ -339,29 +339,35 @@ class MethodParameterTypePatcher:
 def find_parameter_annotations(
     module: ast.Module, cls: str, method: str, parameter: str
 ) -> list[ast.expr]:
+    arguments = [
+        argument
+        for function in find_methods(module, cls, method)
+        for argument in get_arguments(function)
+        if argument.arg == parameter
+    ]
+    return [argument.annotation for argument in arguments if argument.annotation]
+
+
+def find_methods(
+    module: ast.Module, cls: str, method: str
+) -> list[ast.FunctionDef | ast.AsyncFunctionDef]:
     classes = [
         node
         for node in module.body
         if isinstance(node, ast.ClassDef) and node.name == cls
     ]
-    functions = [
+    return [
         node
         for class_ in classes
         for node in class_.body
         if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef)
         and node.name == method
     ]
-    arguments = [
-        argument
-        for function in functions
-        for argument in (
-            *function.args.posonlyargs,
-            *function.args.args,
-            *function.args.kwonlyargs,
-        )
-        if argument.arg == parameter
-    ]
-    return [argument.annotation for argument in arguments if argument.annotation]
+
+
+def get_arguments(function: ast.FunctionDef | ast.AsyncFunctionDef) -> list[ast.arg]:
+    args = function.args
+    return [*args.posonlyargs, *args.args, *args.kwonlyargs]
 
 
 def replace_source_segment(lines: list[str], node: ast.expr, new: str) -> None:
