@@ -349,11 +349,12 @@ The following fixtures are auto-registered via the pytest plugin entry point (no
 ## Extras
 
 - **`ibis_typing.type_patch`** — patches installed ibis with typed `@overload` stubs for `ibis.ifelse`, `ibis.cases`,
-  `ibis.coalesce`, etc.
+  `ibis.coalesce`, etc., and lets `ArrayValue.map` and `filter` take callbacks typed over the element type
 - **`ibis_typing.schema_writer`** — code-gen: write `IbisSchema` `.py` files from `Expression` output schemas
 - **`ibis_typing.plot`** — plots the dependency graph of an `Expression` using matplotlib/graphviz
 - **`ibis_typing.custom`** — custom ibis operations: `DateAddMonth`, `DateAddDay`, `ColumnChecksum`, `JsonParse`,
   `JsonFormat`, `UUIDFromInt`, `LuhnCheck`
+- **`ibis_typing.ibis_ops.FirstJson`** — the first element of a JSON array matching a predicate over `JSONValue`
 
 ## Contributing
 

@@ -13,6 +13,7 @@ import ibis.expr.types.rich
 
 from . import (
     api,
+    arrays,
     generic,
     logical,
     monkeypatch,
@@ -28,6 +29,10 @@ def get_patched_module_writers():
         PatchedModuleWriter(
             ibis.expr.api,
             api.get_patchers(),
+        ),
+        PatchedModuleWriter(
+            ibis.expr.types.arrays,
+            arrays.get_patchers(),
         ),
         PatchedModuleWriter(
             ibis.expr.types.generic,

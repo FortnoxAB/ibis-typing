@@ -10,6 +10,7 @@ from ibis import literal as l
 from ibis_typing.fixtures.expressions import EvaluateExpr
 from ibis_typing.ibis_ops import (
     ColumnChecksum,
+    FirstJson,
     IntToUUID,
     JsonFormat,
     JsonParse,
@@ -42,6 +43,14 @@ def test_json_roundtrip(evaluate_expr: EvaluateExpr):
     expr = l(json.dumps(expected)) @ JsonParse() @ JsonFormat()
     actual = evaluate_expr(expr)
     assert json.loads(actual) == expected
+
+
+def test_first_json(evaluate_expr: EvaluateExpr):
+    conditions = [{"name": "a", "value": 1}, {"name": "b", "value": 2}]
+    array = (l(json.dumps(conditions)) @ JsonParse()).array
+    expr = array @ FirstJson(lambda x: x["name"].str == l("b"))
+    actual = evaluate_expr(expr["value"].int)
+    assert actual == 2
 
 
 @pytest.mark.parametrize(

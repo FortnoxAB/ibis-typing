@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from typing import Any, cast, override
 
 import ibis
+from attrs import frozen
 from ibis import Table, Value, ir
 from typing_extensions import deprecated
 
@@ -45,6 +46,20 @@ class JsonFormat(ValueMethod[ir.JSONValue, ir.StringValue]):
 
     def apply(self, value: ir.JSONValue):
         return custom_operations.JsonFormat(arg=op_cast(value)).to_expr()
+
+
+@frozen
+class FirstJson(ValueMethod[ir.ArrayValue, ir.JSONValue]):
+    """The first element of a JSON array for which `predicate` holds.
+
+    ibis arrays carry no element type, so `[0]` returns `ir.Value`; this is the
+    one place that narrows it to JSON.
+    """
+
+    predicate: Callable[[ir.JSONValue], ir.BooleanValue]
+
+    def apply(self, value: ir.ArrayValue) -> ir.JSONValue:
+        return cast(ir.JSONValue, value.filter(self.predicate)[0])
 
 
 class IntToUUID(ValueMethod[ir.IntegerValue, ir.UUIDValue]):
