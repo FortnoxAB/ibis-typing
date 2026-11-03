@@ -11,12 +11,8 @@ from unittest import mock
 import ibis.expr.types.arrays
 from ibis import ir
 
-from ibis_typing.ibis_ops import JsonFormat
+from ibis_typing.ibis_ops import JsonFormat, LuhnCheck
 from ibis_typing.type_patch import arrays
-
-
-def is_object(value: ir.JSONValue) -> ir.BooleanValue:
-    return value["name"].str.notnull()
 
 
 def test_array_map_and_filter_accept_element_typed_callbacks():
@@ -24,13 +20,14 @@ def test_array_map_and_filter_accept_element_typed_callbacks():
     array: ir.ArrayValue = mocked
 
     format_json = JsonFormat().apply
+    is_valid = LuhnCheck().apply
 
     array.map(format_json)
-    array.filter(is_object)
+    array.filter(is_valid)
 
     assert mocked.mock_calls == [
         mock.call.map(format_json),
-        mock.call.filter(is_object),
+        mock.call.filter(is_valid),
     ]
 
 
