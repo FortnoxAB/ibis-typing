@@ -287,6 +287,45 @@ class SourceReplacePatcher:
 
 
 @frozen
+class MethodParameterTypePatcher:
+    """Replace a parameter annotation in the signatures of a method.
+
+    >>> module = '''
+    ...     def drop_view(self, *, database: str | None = None) -> None:
+    ...         database: str | None = None
+    ... '''
+    >>> patcher = MethodParameterTypePatcher(
+    ...     "drop_view", "database", "str | None", "tuple[str, str] | str | None"
+    ... )
+    >>> print(patcher(module))
+    <BLANKLINE>
+        def drop_view(self, *, database: tuple[str, str] | str | None = None) -> None:
+            database: str | None = None
+    <BLANKLINE>
+    """
+
+    method: str
+    parameter: str
+    old: str
+    new: str
+
+    def __call__(self, module_impl: str) -> str:
+        logger.info(f"{self.method}({self.parameter}: {self.new})")
+        signature = re.compile(
+            rf"^    def {self.method}\(.*?\)(?: -> [^\n]+)?:\n",
+            re.MULTILINE | re.DOTALL,
+        )
+        old = f"{self.parameter}: {self.old}"
+        new = f"{self.parameter}: {self.new}"
+        patched = signature.sub(
+            lambda match: match.group().replace(old, new), module_impl
+        )
+        if patched == module_impl:
+            raise LookupError(f"Parameter not found: {self.method}({old})")
+        return patched
+
+
+@frozen
 class TypingOverloadImportPatcher:
     """Import @overload in target module.
 

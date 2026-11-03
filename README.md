@@ -349,7 +349,7 @@ The following fixtures are auto-registered via the pytest plugin entry point (no
 ## Extras
 
 - **`ibis_typing.type_patch`** — patches installed ibis with typed `@overload` stubs for `ibis.ifelse`, `ibis.cases`,
-  `ibis.coalesce`, etc.
+  `ibis.coalesce`, etc., and lets backend table and view operations take a `(catalog, database)` tuple as `database`
 - **`ibis_typing.schema_writer`** — code-gen: write `IbisSchema` `.py` files from `Expression` output schemas
 - **`ibis_typing.plot`** — plots the dependency graph of an `Expression` using matplotlib/graphviz
 - **`ibis_typing.custom`** — custom ibis operations: `DateAddMonth`, `DateAddDay`, `ColumnChecksum`, `JsonParse`,

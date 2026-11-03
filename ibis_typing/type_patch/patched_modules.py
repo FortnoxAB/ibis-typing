@@ -1,6 +1,9 @@
 """Index of type-patched modules."""
 
 import _pytest.monkeypatch
+import ibis.backends
+import ibis.backends.sql
+import ibis.backends.trino
 import ibis.expr.api
 import ibis.expr.types.arrays
 import ibis.expr.types.generic
@@ -13,6 +16,7 @@ import ibis.expr.types.rich
 
 from . import (
     api,
+    backends,
     generic,
     logical,
     monkeypatch,
@@ -48,6 +52,18 @@ def get_patched_module_writers():
         PatchedModuleWriter(
             ibis.expr.types.rich,
             rich.get_patchers(),
+        ),
+        PatchedModuleWriter(
+            ibis.backends,
+            backends.get_base_patchers(),
+        ),
+        PatchedModuleWriter(
+            ibis.backends.sql,
+            backends.get_sql_patchers(),
+        ),
+        PatchedModuleWriter(
+            ibis.backends.trino,
+            backends.get_trino_patchers(),
         ),
         PatchedModuleWriter(
             _pytest.monkeypatch,
