@@ -1,5 +1,6 @@
 """Type patch generators."""
 
+import ast
 import functools
 import importlib
 import logging
@@ -288,41 +289,91 @@ class SourceReplacePatcher:
 
 @frozen
 class MethodParameterTypePatcher:
-    """Replace a parameter annotation in the signatures of a method.
+    """Replace a parameter annotation in every definition of a method.
+
+    The method is located by parsing the module, so only the annotation of the
+    named parameter in the named class and method is touched.
 
     >>> module = '''
+    ... class Backend:
     ...     def drop_view(self, *, database: str | None = None) -> None:
     ...         database: str | None = None
     ... '''
-    >>> patcher = MethodParameterTypePatcher(
-    ...     "drop_view", "database", "str | None", "tuple[str, str] | str | None"
+    >>> patched = MethodParameterTypePatcher.apply_patch(
+    ...     module, "Backend.drop_view", "database", "tuple[str, str] | str | None"
     ... )
-    >>> print(patcher(module))
+    >>> print(patched)
     <BLANKLINE>
+    class Backend:
         def drop_view(self, *, database: tuple[str, str] | str | None = None) -> None:
             database: str | None = None
     <BLANKLINE>
     """
 
-    method: str
+    method: FunctionType
     parameter: str
-    old: str
-    new: str
+    annotation: str
 
     def __call__(self, module_impl: str) -> str:
-        logger.info(f"{self.method}({self.parameter}: {self.new})")
-        signature = re.compile(
-            rf"^    def {self.method}\(.*?\)(?: -> [^\n]+)?:\n",
-            re.MULTILINE | re.DOTALL,
+        qualname = self.method.__qualname__
+        logger.info(f"{qualname}({self.parameter}: {self.annotation})")
+        return self.apply_patch(module_impl, qualname, self.parameter, self.annotation)
+
+    @classmethod
+    def apply_patch(
+        cls, module_impl: str, qualname: str, parameter: str, annotation: str
+    ) -> str:
+        cls_name, method = qualname.split(".")
+        annotations = find_parameter_annotations(
+            ast.parse(module_impl), cls_name, method, parameter
         )
-        old = f"{self.parameter}: {self.old}"
-        new = f"{self.parameter}: {self.new}"
-        patched = signature.sub(
-            lambda match: match.group().replace(old, new), module_impl
+        if not annotations:
+            raise LookupError(f"Parameter not found: {qualname}({parameter})")
+
+        lines = module_impl.splitlines(keepends=True)
+        for node in sorted(annotations, key=lambda node: node.lineno, reverse=True):
+            replace_source_segment(lines, node, annotation)
+        return "".join(lines)
+
+
+def find_parameter_annotations(
+    module: ast.Module, cls: str, method: str, parameter: str
+) -> list[ast.expr]:
+    classes = [
+        node
+        for node in module.body
+        if isinstance(node, ast.ClassDef) and node.name == cls
+    ]
+    functions = [
+        node
+        for class_ in classes
+        for node in class_.body
+        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef)
+        and node.name == method
+    ]
+    arguments = [
+        argument
+        for function in functions
+        for argument in (
+            *function.args.posonlyargs,
+            *function.args.args,
+            *function.args.kwonlyargs,
         )
-        if patched == module_impl:
-            raise LookupError(f"Parameter not found: {self.method}({old})")
-        return patched
+        if argument.arg == parameter
+    ]
+    return [argument.annotation for argument in arguments if argument.annotation]
+
+
+def replace_source_segment(lines: list[str], node: ast.expr, new: str) -> None:
+    """Replace the source of a node in place, given the module split into lines.
+
+    Column offsets are UTF-8 byte offsets, so slice the encoded lines.
+    """
+    assert node.end_lineno is not None and node.end_col_offset is not None
+    start, end = node.lineno - 1, node.end_lineno - 1
+    head = lines[start].encode()[: node.col_offset].decode()
+    tail = lines[end].encode()[node.end_col_offset :].decode()
+    lines[start : end + 1] = [head + new + tail]
 
 
 @frozen
