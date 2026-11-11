@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ibis_typing.ibis_api` — `value @ ValueMethod()` implementations of `ibis` API functions, exported through `ibis_typing.it`: `And`, `Or`, `Cases`, `Desc`, `FillNull`, `Greatest`, `IfElse`, `Least`
 - `@`-calls can now be chained on `Deferred()` objects
 - `ExpressionMethod` — chain `Expression` transforms with the `@` operator
-- `ibis_typing.refactor` — CLI that rewrites `ibis.*` function calls to the `@` extension-method syntax (e.g. `ibis.ifelse(cond, l, r)` → `cond @ it.IfElse(l, r)`); requires the `dev` extra (`libcst`, `rope`)
+- `ibis_typing.refactor` — CLI that rewrites `ibis.*` function calls to the `@` extension-method syntax (e.g. `ibis.ifelse(cond, l, r)` → `cond @ it.IfElse(l, r)`); requires the `dev` extra (`libcst`)
 - `ibis_typing.schemagen` — CLI for generating `IbisSchema` files
 - `ibis_typing.dbt` — dbt integration framework: define models and snapshots as `Expression`s and compile them to dbt SQL, with `RevertibleTableExpression` support
 - `ibis.literal(val)` return types are now annotated as `ibis.Value` for better type support

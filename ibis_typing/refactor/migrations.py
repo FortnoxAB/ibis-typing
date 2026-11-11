@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from ibis_typing.refactor.ibis_cst import IbisFuncToMethodRule, IbisTransformer
+from ibis_typing.refactor.table_cst import TableTransformer
 
 
 class IbisApiRule(IbisFuncToMethodRule):
@@ -50,4 +51,8 @@ MIGRATIONS = {
         ],
         import_from="ibis_typing.ibis_time",
     ),
+    "table": TableTransformer(),
 }
+
+# The table rules match any `.filter(...)`, `.join(...)` etc., so they are opt-in.
+DEFAULT_MIGRATIONS = tuple(m for m in MIGRATIONS if m != "table")

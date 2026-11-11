@@ -13,7 +13,7 @@ A Python library (and pytest plugin) for typed [Ibis](https://ibis-project.org/)
 | Package manager      | `uv`                                           |
 | Build backend        | `hatchling`                                    |
 | Linting / formatting | `ruff`                                         |
-| Type checking        | `pyright`                                      |
+| Type checking        | `pyrefly`                                      |
 | Dependency auditing  | `deptry`                                       |
 | Testing              | `pytest` + `hypothesis`                        |
 | Coverage             | `coverage.py` (≥ 90% branch coverage enforced) |
