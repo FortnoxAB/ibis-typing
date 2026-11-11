@@ -354,6 +354,10 @@ The following fixtures are auto-registered via the pytest plugin entry point (no
 - **`ibis_typing.plot`** — plots the dependency graph of an `Expression` using matplotlib/graphviz
 - **`ibis_typing.custom`** — custom ibis operations: `DateAddMonth`, `DateAddDay`, `ColumnChecksum`, `JsonParse`,
   `JsonFormat`, `UUIDFromInt`, `LuhnCheck`
+- **`ibis_typing.refactor`** — tool to refactor native ibis functions 
+  `ibis.greatest(first, second) -> first @ it.Greatest(second)`
+  and ibis table method chains
+  `table.select().filter() -> table @ it.Select() @ it.deferred.filter()`
 
 ## Contributing
 
